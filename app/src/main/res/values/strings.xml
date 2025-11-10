@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gym Companion</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_routines">Rutinas</string>
+    <string name="nav_exercises">Ejercicios</string>
+    <string name="nav_progress">Progreso</string>
+    <string name="nav_profile">Perfil</string>
+    
+    <!-- Home Screen -->
+    <string name="home_welcome">Bienvenido de vuelta</string>
+    <string name="home_today_routine">Rutina de Hoy</string>
+    <string name="home_no_routine">No hay rutina programada para hoy</string>
+    <string name="home_start_workout">Comenzar Entrenamiento</string>
+    <string name="home_quick_stats">Estadísticas Rápidas</string>
+    
+    <!-- Body Metrics -->
+    <string name="metrics_title">Datos Corporales</string>
+    <string name="metrics_weight">Peso (kg)</string>
+    <string name="metrics_height">Altura (cm)</string>
+    <string name="metrics_age">Edad</string>
+    <string name="metrics_bmi">IMC</string>
+    <string name="metrics_body_fat">% Grasa Corporal</string>
+    <string name="metrics_experience">Nivel de Experiencia</string>
+    <string name="metrics_experience_beginner">Principiante</string>
+    <string name="metrics_experience_intermediate">Intermedio</string>
+    <string name="metrics_experience_advanced">Avanzado</string>
+    
+    <!-- Body Measurements -->
+    <string name="measurements_title">Medidas Corporales</string>
+    <string name="measurements_chest">Pecho (cm)</string>
+    <string name="measurements_waist">Cintura (cm)</string>
+    <string name="measurements_hips">Cadera (cm)</string>
+    <string name="measurements_thighs">Muslos (cm)</string>
+    <string name="measurements_arms">Brazos (cm)</string>
+    <string name="measurements_calves">Pantorrillas (cm)</string>
+    
+    <!-- Workout Session -->
+    <string name="workout_timer">Temporizador</string>
+    <string name="workout_sets">Series</string>
+    <string name="workout_reps">Repeticiones</string>
+    <string name="workout_weight">Peso (kg)</string>
+    <string name="workout_rest_time">Descanso</string>
+    <string name="workout_start">Iniciar</string>
+    <string name="workout_pause">Pausar</string>
+    <string name="workout_complete_set">Completar Serie</string>
+    <string name="workout_finish">Finalizar Entrenamiento</string>
+    
+    <!-- Exercise Library -->
+    <string name="exercises_search">Buscar ejercicios</string>
+    <string name="exercises_filter">Filtrar</string>
+    <string name="exercises_muscle_group">Grupo Muscular</string>
+    <string name="exercises_equipment">Equipo</string>
+    <string name="exercises_difficulty">Dificultad</string>
+    
+    <!-- Common Actions -->
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_add">Agregar</string>
+    <string name="action_update">Actualizar</string>
+    
+    <!-- Validation Messages -->
+    <string name="error_required_field">Este campo es obligatorio</string>
+    <string name="error_invalid_weight">Peso inválido (debe estar entre 30-300 kg)</string>
+    <string name="error_invalid_height">Altura inválida (debe estar entre 100-250 cm)</string>
+    <string name="error_invalid_age">Edad inválida (debe estar entre 13-100 años)</string>
+    <string name="error_invalid_body_fat" formatted="false">% de grasa inválido (debe estar entre 3-60%)</string>
+    
+    <!-- Success Messages -->
+    <string name="success_data_saved">Datos guardados exitosamente</string>
+    <string name="success_workout_completed">¡Entrenamiento completado!</string>
+    
+    <!-- Disclaimers -->
+    <string name="disclaimer_title">Aviso Importante</string>
+    <string name="disclaimer_message">Esta aplicación proporciona recomendaciones generales de fitness. Consulte con un médico antes de iniciar cualquier programa de ejercicio, especialmente si tiene condiciones de salud preexistentes.</string>
+    <string name="disclaimer_accept">Entendido</string>
+</resources>

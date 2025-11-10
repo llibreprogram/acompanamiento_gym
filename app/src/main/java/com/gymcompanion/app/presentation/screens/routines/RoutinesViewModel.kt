@@ -1,0 +1,205 @@
+package com.gymcompanion.app.presentation.screens.routines
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.gymcompanion.app.data.local.entity.RoutineEntity
+import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
+import com.gymcompanion.app.data.local.entity.RoutineWithExercises
+import com.gymcompanion.app.domain.repository.RoutineRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/**
+ * ViewModel para la gestión de rutinas
+ */
+@HiltViewModel
+class RoutinesViewModel @Inject constructor(
+    private val routineRepository: RoutineRepository
+) : ViewModel() {
+    
+    // Lista de todas las rutinas
+    val allRoutines: StateFlow<List<RoutineWithExercises>> = routineRepository.getAllRoutines()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // Rutinas activas
+    val activeRoutines: StateFlow<List<RoutineWithExercises>> = routineRepository.getActiveRoutines()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // Estado de UI
+    private val _uiState = MutableStateFlow<RoutinesUiState>(RoutinesUiState.Success)
+    val uiState: StateFlow<RoutinesUiState> = _uiState.asStateFlow()
+    
+    // Rutina seleccionada para edición
+    private val _selectedRoutine = MutableStateFlow<RoutineWithExercises?>(null)
+    val selectedRoutine: StateFlow<RoutineWithExercises?> = _selectedRoutine.asStateFlow()
+    
+    /**
+     * Crea una nueva rutina
+     */
+    fun createRoutine(
+        name: String,
+        description: String,
+        daysOfWeek: List<String>,
+        isActive: Boolean = true
+    ) {
+        viewModelScope.launch {
+            try {
+                val routine = RoutineEntity(
+                    name = name,
+                    description = description,
+                    daysOfWeek = daysOfWeek.joinToString(","),
+                    isActive = isActive,
+                    createdAt = System.currentTimeMillis()
+                )
+                routineRepository.insertRoutine(routine)
+                _uiState.value = RoutinesUiState.Success
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error(e.message ?: "Error al crear rutina")
+            }
+        }
+    }
+    
+    /**
+     * Actualiza una rutina existente
+     */
+    fun updateRoutine(
+        routineId: Long,
+        name: String,
+        description: String,
+        daysOfWeek: List<String>,
+        isActive: Boolean
+    ) {
+        viewModelScope.launch {
+            try {
+                val routine = RoutineEntity(
+                    id = routineId,
+                    name = name,
+                    description = description,
+                    daysOfWeek = daysOfWeek.joinToString(","),
+                    isActive = isActive,
+                    createdAt = System.currentTimeMillis()
+                )
+                routineRepository.updateRoutine(routine)
+                _uiState.value = RoutinesUiState.Success
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error(e.message ?: "Error al actualizar rutina")
+            }
+        }
+    }
+    
+    /**
+     * Elimina una rutina
+     */
+    fun deleteRoutine(routine: RoutineWithExercises) {
+        viewModelScope.launch {
+            try {
+                routineRepository.deleteRoutine(routine.routine)
+                _uiState.value = RoutinesUiState.Success
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error(e.message ?: "Error al eliminar rutina")
+            }
+        }
+    }
+    
+    /**
+     * Agrega un ejercicio a una rutina
+     */
+    fun addExerciseToRoutine(
+        routineId: Long,
+        exerciseId: Long,
+        sets: Int,
+        repsMin: Int?,
+        repsMax: Int?,
+        restSeconds: Int,
+        notes: String
+    ) {
+        viewModelScope.launch {
+            try {
+                // Obtener el orden actual más alto
+                val exercises = routineRepository.getRoutineExercises(routineId).first()
+                val maxOrder = exercises.maxOfOrNull { it.orderIndex } ?: -1
+                
+                val routineExercise = RoutineExerciseEntity(
+                    routineId = routineId,
+                    exerciseId = exerciseId,
+                    orderIndex = maxOrder + 1,
+                    sets = sets,
+                    repsMin = repsMin,
+                    repsMax = repsMax,
+                    restSeconds = restSeconds,
+                    notes = notes
+                )
+                routineRepository.addExerciseToRoutine(routineExercise)
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error(e.message ?: "Error al agregar ejercicio")
+            }
+        }
+    }
+    
+    /**
+     * Elimina un ejercicio de una rutina
+     */
+    fun removeExerciseFromRoutine(routineExercise: RoutineExerciseEntity) {
+        viewModelScope.launch {
+            try {
+                routineRepository.removeExerciseFromRoutine(routineExercise)
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error(e.message ?: "Error al eliminar ejercicio")
+            }
+        }
+    }
+    
+    /**
+     * Carga una rutina para edición
+     */
+    fun loadRoutineForEdit(routineId: Long) {
+        viewModelScope.launch {
+            routineRepository.getRoutineById(routineId).collect { routine ->
+                _selectedRoutine.value = routine
+            }
+        }
+    }
+    
+    /**
+     * Obtiene las rutinas para un día específico
+     */
+    fun getRoutinesForDay(dayOfWeek: String): Flow<List<RoutineWithExercises>> {
+        return routineRepository.getRoutinesForDay(dayOfWeek)
+    }
+    
+    /**
+     * Obtiene el día de la semana actual en español
+     */
+    fun getCurrentDayOfWeek(): String {
+        val calendar = java.util.Calendar.getInstance()
+        return when (calendar.get(java.util.Calendar.DAY_OF_WEEK)) {
+            java.util.Calendar.MONDAY -> "Lunes"
+            java.util.Calendar.TUESDAY -> "Martes"
+            java.util.Calendar.WEDNESDAY -> "Miércoles"
+            java.util.Calendar.THURSDAY -> "Jueves"
+            java.util.Calendar.FRIDAY -> "Viernes"
+            java.util.Calendar.SATURDAY -> "Sábado"
+            java.util.Calendar.SUNDAY -> "Domingo"
+            else -> ""
+        }
+    }
+}
+
+/**
+ * Estados de UI para rutinas
+ */
+sealed class RoutinesUiState {
+    object Loading : RoutinesUiState()
+    object Success : RoutinesUiState()
+    data class Error(val message: String) : RoutinesUiState()
+}
