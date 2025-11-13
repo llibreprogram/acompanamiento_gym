@@ -45,6 +45,7 @@ data class WorkoutSessionEntity(
     val completedExercises: Int = 0,
     val totalSets: Int = 0,
     val completedSets: Int = 0,
+    val totalVolume: Double = 0.0, // Volumen total (peso * reps)
     
     // Sensación subjetiva de esfuerzo (RPE: Rate of Perceived Exertion)
     val rpe: Int? = null, // Escala 1-10

@@ -152,7 +152,7 @@ fun ExercisesScreen(
                     }
                 }
                 
-                HorizontalDivider()
+                Divider()
             }
         }
     ) { paddingValues ->

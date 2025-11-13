@@ -56,4 +56,27 @@ interface RoutineDao {
     
     @Query("SELECT COUNT(*) FROM routine_exercises WHERE routineId = :routineId")
     suspend fun getExerciseCountForRoutine(routineId: Long): Int
+    
+    @Update
+    suspend fun updateRoutineExercise(routineExercise: RoutineExerciseEntity)
+    
+    @Query("UPDATE routine_exercises SET orderIndex = :newOrder WHERE routineId = :routineId AND exerciseId = :exerciseId")
+    suspend fun updateExerciseOrder(routineId: Long, exerciseId: Long, newOrder: Int)
+    
+    // Queries with relations
+    @Transaction
+    @Query("SELECT * FROM routines WHERE userId = :userId ORDER BY createdAt DESC")
+    fun getAllRoutinesWithExercises(userId: Long): Flow<List<com.gymcompanion.app.data.local.entity.RoutineWithExercises>>
+    
+    @Transaction
+    @Query("SELECT * FROM routines WHERE id = :routineId")
+    fun getRoutineWithExercisesById(routineId: Long): Flow<com.gymcompanion.app.data.local.entity.RoutineWithExercises?>
+    
+    @Transaction
+    @Query("SELECT * FROM routines WHERE userId = :userId AND isActive = 1 ORDER BY createdAt DESC")
+    fun getActiveRoutinesWithExercises(userId: Long): Flow<List<com.gymcompanion.app.data.local.entity.RoutineWithExercises>>
+    
+    @Transaction
+    @Query("SELECT * FROM routines WHERE userId = :userId AND daysOfWeek LIKE '%' || :dayOfWeek || '%' ORDER BY createdAt DESC")
+    fun getRoutinesForDayWithExercises(userId: Long, dayOfWeek: String): Flow<List<com.gymcompanion.app.data.local.entity.RoutineWithExercises>>
 }

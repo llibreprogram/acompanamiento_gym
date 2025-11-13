@@ -86,7 +86,7 @@ class ProgressViewModel @Inject constructor(
      */
     fun getWeightChartData(): List<Pair<Long, Float>> {
         return recentBodyMetrics.value.map { metrics ->
-            Pair(metrics.date, metrics.weight.toFloat())
+            Pair(metrics.recordedAt, metrics.weight.toFloat())
         }.sortedBy { it.first }
     }
     
@@ -108,7 +108,7 @@ class ProgressViewModel @Inject constructor(
     fun getBmiChartData(): List<Pair<Long, Float>> {
         return recentBodyMetrics.value.map { metrics ->
             val bmi = BodyMetricsEntity.calculateBMI(metrics.weight, metrics.height)
-            Pair(metrics.date, bmi.toFloat())
+            Pair(metrics.recordedAt, bmi.toFloat())
         }.sortedBy { it.first }
     }
     
@@ -143,7 +143,7 @@ class ProgressViewModel @Inject constructor(
         val metrics = recentBodyMetrics.value
         if (metrics.size < 2) return null
         
-        val sorted = metrics.sortedBy { it.date }
+        val sorted = metrics.sortedBy { it.recordedAt }
         val oldest = sorted.first().weight
         val newest = sorted.last().weight
         val change = newest - oldest

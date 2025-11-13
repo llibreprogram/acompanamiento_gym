@@ -7,6 +7,7 @@ import com.gymcompanion.app.data.local.entity.WorkoutSessionWithSets
 import com.gymcompanion.app.domain.repository.WorkoutSessionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -18,23 +19,32 @@ class WorkoutSessionRepositoryImpl @Inject constructor(
 ) : WorkoutSessionRepository {
     
     override fun getAllSessions(): Flow<List<WorkoutSessionEntity>> {
-        return workoutSessionDao.getAllSessions()
+        return workoutDao.getAllWorkoutSessionsByUser(1L) // TODO: Get actual user ID
     }
     
     override fun getSessionById(sessionId: Long): Flow<WorkoutSessionWithSets?> {
-        return workoutSessionDao.getSessionWithSets(sessionId)
+        return workoutDao.getWorkoutSessionById(sessionId).map { session ->
+            session?.let {
+                WorkoutSessionWithSets(
+                    session = it,
+                    sets = workoutDao.getSetsForWorkoutSession(sessionId).first()
+                )
+            }
+        }
     }
     
     override fun getSessionsByRoutine(routineId: Long): Flow<List<WorkoutSessionEntity>> {
-        return workoutSessionDao.getSessionsByRoutine(routineId)
+        return workoutDao.getAllWorkoutSessionsByUser(1L).map { sessions ->
+            sessions.filter { it.routineId == routineId }
+        }
     }
     
     override fun getSessionsByDateRange(startDate: Long, endDate: Long): Flow<List<WorkoutSessionEntity>> {
-        return workoutSessionDao.getSessionsByDateRange(startDate, endDate)
+        return workoutDao.getWorkoutSessionsInDateRange(1L, startDate, endDate)
     }
     
     override fun getLastSession(): Flow<WorkoutSessionEntity?> {
-        return workoutSessionDao.getLastSession()
+        return workoutDao.getActiveWorkoutSession(1L)
     }
     
     override fun getSessionsThisWeek(): Flow<List<WorkoutSessionEntity>> {
@@ -49,47 +59,57 @@ class WorkoutSessionRepositoryImpl @Inject constructor(
         calendar.add(Calendar.WEEK_OF_YEAR, 1)
         val endOfWeek = calendar.timeInMillis
         
-        return workoutSessionDao.getSessionsByDateRange(startOfWeek, endOfWeek)
+        return workoutDao.getWorkoutSessionsInDateRange(1L, startOfWeek, endOfWeek)
     }
     
     override suspend fun insertSession(session: WorkoutSessionEntity): Long {
-        return workoutSessionDao.insertSession(session)
+        return workoutDao.insertWorkoutSession(session)
     }
     
     override suspend fun updateSession(session: WorkoutSessionEntity) {
-        workoutSessionDao.updateSession(session)
+        workoutDao.updateWorkoutSession(session)
     }
     
     override suspend fun deleteSession(session: WorkoutSessionEntity) {
-        workoutSessionDao.deleteSession(session)
+        workoutDao.deleteWorkoutSession(session)
     }
     
     override suspend fun insertExerciseSet(exerciseSet: ExerciseSetEntity) {
-        workoutSessionDao.insertExerciseSet(exerciseSet)
+        workoutDao.insertExerciseSet(exerciseSet)
     }
     
     override suspend fun updateExerciseSet(exerciseSet: ExerciseSetEntity) {
-        workoutSessionDao.updateExerciseSet(exerciseSet)
+        workoutDao.updateExerciseSet(exerciseSet)
     }
     
     override suspend fun deleteExerciseSet(exerciseSet: ExerciseSetEntity) {
-        workoutSessionDao.deleteExerciseSet(exerciseSet)
+        workoutDao.deleteExerciseSet(exerciseSet)
     }
     
     override fun getSessionSets(sessionId: Long): Flow<List<ExerciseSetEntity>> {
-        return workoutSessionDao.getSessionSets(sessionId)
+        return workoutDao.getSetsForWorkoutSession(sessionId)
     }
     
     override fun getExerciseSetsInSession(sessionId: Long, exerciseId: Long): Flow<List<ExerciseSetEntity>> {
-        return workoutSessionDao.getExerciseSetsInSession(sessionId, exerciseId)
+        return workoutDao.getSetsForExerciseInSession(sessionId, exerciseId)
     }
     
     override suspend fun completeSession(sessionId: Long, endTime: Long) {
-        workoutSessionDao.completeSession(sessionId, endTime)
+        val session = workoutDao.getWorkoutSessionById(sessionId).first()
+        session?.let {
+            val durationMinutes = ((endTime - it.startTime) / 60000).toInt()
+            workoutDao.updateWorkoutSession(
+                it.copy(
+                    endTime = endTime,
+                    durationMinutes = durationMinutes,
+                    isCompleted = true
+                )
+            )
+        }
     }
     
     override suspend fun calculateSessionVolume(sessionId: Long): Double {
         val sets = getSessionSets(sessionId).first()
-        return sets.sumOf { (it.weight ?: 0.0) * (it.reps ?: 0) }
+        return sets.sumOf { (it.weightUsed ?: 0.0) * it.repsCompleted }
     }
 }

@@ -134,19 +134,16 @@ fun WorkoutScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(routineWithExercises.exercises) { routineExercise ->
-                            val exercise = routineExercise.exercise
+                        items(routineWithExercises.routineExercises) { routineExerciseWithExercise ->
+                            val exercise = routineExerciseWithExercise.exercise
+                            val routineExercise = routineExerciseWithExercise.routineExercise
                             val sets = viewModel.getSetsForExercise(exercise.id)
-                            val isCurrentExercise = routineWithExercises.exercises.indexOf(routineExercise) == currentExerciseIndex
+                            val isCurrentExercise = routineWithExercises.routineExercises.indexOf(routineExerciseWithExercise) == currentExerciseIndex
                             
                             ExerciseWorkoutCard(
                                 exerciseName = exercise.name,
-                                targetSets = routineExercise.sets,
-                                targetReps = if (routineExercise.repsMin != null && routineExercise.repsMax != null) {
-                                    "${routineExercise.repsMin}-${routineExercise.repsMax}"
-                                } else {
-                                    routineExercise.repsMin?.toString() ?: "—"
-                                },
+                                targetSets = routineExercise.plannedSets,
+                                targetReps = routineExercise.plannedReps,
                                 completedSets = sets,
                                 isCurrentExercise = isCurrentExercise,
                                 onAddSet = {
@@ -310,7 +307,7 @@ fun ExerciseWorkoutCard(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "${set.weight ?: "—"}kg × ${set.reps ?: "—"} reps${if (set.rir != null) " (RIR ${set.rir})" else ""}",
+                                text = "${set.weightUsed ?: "—"}kg × ${set.repsCompleted} reps${if (set.rir != null) " (RIR ${set.rir})" else ""}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             IconButton(

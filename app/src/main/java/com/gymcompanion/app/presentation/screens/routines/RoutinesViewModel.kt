@@ -55,9 +55,13 @@ class RoutinesViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val routine = RoutineEntity(
+                    userId = 1L, // TODO: Get actual user ID
                     name = name,
                     description = description,
                     daysOfWeek = daysOfWeek.joinToString(","),
+                    duration = 60, // TODO: Calculate from exercises
+                    focusArea = "general_fitness",
+                    difficulty = "intermediate",
                     isActive = isActive,
                     createdAt = System.currentTimeMillis()
                 )
@@ -83,9 +87,13 @@ class RoutinesViewModel @Inject constructor(
             try {
                 val routine = RoutineEntity(
                     id = routineId,
+                    userId = 1L, // TODO: Get actual user ID
                     name = name,
                     description = description,
                     daysOfWeek = daysOfWeek.joinToString(","),
+                    duration = 60, // TODO: Calculate from exercises
+                    focusArea = "general_fitness",
+                    difficulty = "intermediate",
                     isActive = isActive,
                     createdAt = System.currentTimeMillis()
                 )
@@ -133,10 +141,9 @@ class RoutinesViewModel @Inject constructor(
                     routineId = routineId,
                     exerciseId = exerciseId,
                     orderIndex = maxOrder + 1,
-                    sets = sets,
-                    repsMin = repsMin,
-                    repsMax = repsMax,
-                    restSeconds = restSeconds,
+                    plannedSets = sets,
+                    plannedReps = if (repsMin == repsMax) "$repsMin" else "$repsMin-$repsMax",
+                    restTimeSeconds = restSeconds,
                     notes = notes
                 )
                 routineRepository.addExerciseToRoutine(routineExercise)

@@ -78,6 +78,7 @@ class WorkoutViewModel @Inject constructor(
                     // Crear nueva sesión
                     sessionStartTime = System.currentTimeMillis()
                     val session = WorkoutSessionEntity(
+                        userId = 1L, // TODO: Get actual user ID
                         routineId = routineId,
                         startTime = sessionStartTime,
                         endTime = null,
@@ -113,14 +114,14 @@ class WorkoutViewModel @Inject constructor(
             _currentSessionId.value?.let { sessionId ->
                 try {
                     val exerciseSet = ExerciseSetEntity(
-                        sessionId = sessionId,
+                        workoutSessionId = sessionId,
                         exerciseId = exerciseId,
                         setNumber = setNumber,
-                        weight = weight,
-                        reps = reps,
+                        weightUsed = weight,
+                        repsCompleted = reps,
                         rir = rir,
                         notes = notes,
-                        timestamp = System.currentTimeMillis()
+                        performedAt = System.currentTimeMillis()
                     )
                     workoutSessionRepository.insertExerciseSet(exerciseSet)
                     
@@ -200,11 +201,13 @@ class WorkoutViewModel @Inject constructor(
                     // Actualizar sesión
                     val session = WorkoutSessionEntity(
                         id = sessionId,
-                        routineId = _routine.value?.routine?.id ?: 0,
+                        userId = 1L, // TODO: Get actual user ID
+                        routineId = _routine.value?.routine?.id,
                         startTime = sessionStartTime,
                         endTime = endTime,
                         totalVolume = volume,
-                        notes = notes
+                        notes = notes,
+                        isCompleted = true
                     )
                     workoutSessionRepository.updateSession(session)
                     
@@ -227,7 +230,8 @@ class WorkoutViewModel @Inject constructor(
                     // Eliminar la sesión y todos sus sets
                     val session = WorkoutSessionEntity(
                         id = sessionId,
-                        routineId = _routine.value?.routine?.id ?: 0,
+                        userId = 1L, // TODO: Get actual user ID
+                        routineId = _routine.value?.routine?.id,
                         startTime = sessionStartTime,
                         endTime = null,
                         totalVolume = 0.0,

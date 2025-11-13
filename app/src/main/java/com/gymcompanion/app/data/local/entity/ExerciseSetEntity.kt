@@ -47,6 +47,7 @@ data class ExerciseSetEntity(
     
     // Datos adicionales
     val rpe: Int? = null, // Rate of Perceived Exertion (1-10)
+    val rir: Int? = null, // Reps In Reserve (RIR)
     val isDropSet: Boolean = false,
     val isWarmUpSet: Boolean = false,
     val notes: String? = null
