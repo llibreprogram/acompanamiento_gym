@@ -2,6 +2,7 @@ package com.gymcompanion.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.gymcompanion.app.data.local.DatabaseInitializer
 import com.gymcompanion.app.data.local.GymDatabase
 import com.gymcompanion.app.data.local.dao.*
 import dagger.Module
