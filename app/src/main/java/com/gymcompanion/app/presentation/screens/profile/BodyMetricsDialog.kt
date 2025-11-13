@@ -318,6 +318,7 @@ fun ExperienceLevelOption(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
