@@ -23,7 +23,7 @@ class ProgressViewModel @Inject constructor(
     // Métricas corporales del último mes
     val recentBodyMetrics: StateFlow<List<BodyMetricsEntity>> = getLastMonthRange()
         .flatMapLatest { (start, end) ->
-            bodyMetricsRepository.getMetricsInDateRange(startDate = start, endDate = end)
+            bodyMetricsRepository.getMetricsInDateRange(userId = 1L, startDate = start, endDate = end)
         }
         .stateIn(
             scope = viewModelScope,
