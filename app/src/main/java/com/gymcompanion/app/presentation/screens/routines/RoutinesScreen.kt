@@ -134,7 +134,7 @@ fun RoutineCard(
     onDelete: () -> Unit
 ) {
     val routine = routineWithExercises.routine
-    val exercises = routineWithExercises.exercises
+    val exercises = routineWithExercises.routineExercises
     
     Card(
         modifier = Modifier
@@ -160,9 +160,9 @@ fun RoutineCard(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    if (routine.description.isNotBlank()) {
+                    if (!routine.description.isNullOrBlank()) {
                         Text(
-                            text = routine.description,
+                            text = routine.description ?: "",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

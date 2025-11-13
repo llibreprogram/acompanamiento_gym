@@ -134,9 +134,9 @@ fun TodayRoutineCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    if (routine.routine.description.isNotBlank()) {
+                    if (!routine.routine.description.isNullOrBlank()) {
                         Text(
-                            text = routine.routine.description,
+                            text = routine.routine.description ?: "",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
@@ -145,7 +145,7 @@ fun TodayRoutineCard(
             }
             
             Text(
-                text = "${routine.exercises.size} ejercicios",
+                text = "${routine.routineExercises.size} ejercicios",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )

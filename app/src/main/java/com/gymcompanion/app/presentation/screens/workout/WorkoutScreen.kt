@@ -126,7 +126,7 @@ fun WorkoutScreen(
             
             // Lista de ejercicios
             routine?.let { routineWithExercises ->
-                if (routineWithExercises.exercises.isNotEmpty()) {
+                if (routineWithExercises.routineExercises.isNotEmpty()) {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()

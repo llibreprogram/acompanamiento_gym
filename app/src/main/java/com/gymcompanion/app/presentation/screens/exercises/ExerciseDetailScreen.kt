@@ -149,14 +149,14 @@ fun ExerciseDetailScreen(
                 }
                 
                 // Instrucciones
-                if (selectedExercise.instructions.isNotBlank()) {
+                if (selectedExercise.instructionsSteps.isNotBlank()) {
                     item {
                         val instructions = try {
                             val gson = Gson()
                             val type = object : TypeToken<List<String>>() {}.type
-                            gson.fromJson<List<String>>(selectedExercise.instructions, type)
+                            gson.fromJson<List<String>>(selectedExercise.instructionsSteps, type)
                         } catch (e: Exception) {
-                            listOf(selectedExercise.instructions)
+                            listOf(selectedExercise.instructionsSteps)
                         }
                         
                         ListSection(

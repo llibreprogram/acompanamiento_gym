@@ -34,7 +34,7 @@ class ProgressViewModel @Inject constructor(
     // Sesiones del último mes
     val recentSessions: StateFlow<List<WorkoutSessionEntity>> = getLastMonthRange()
         .flatMapLatest { (start, end) ->
-            workoutSessionRepository.getSessionsByDateRange(start, end)
+            workoutSessionRepository.getSessionsByDateRange(startDate = start, endDate = end)
         }
         .stateIn(
             scope = viewModelScope,

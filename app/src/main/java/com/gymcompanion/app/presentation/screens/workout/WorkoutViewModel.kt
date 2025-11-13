@@ -118,7 +118,7 @@ class WorkoutViewModel @Inject constructor(
                         exerciseId = exerciseId,
                         setNumber = setNumber,
                         weightUsed = weight,
-                        repsCompleted = reps,
+                        repsCompleted = reps ?: 0,
                         rir = rir,
                         notes = notes,
                         performedAt = System.currentTimeMillis()
@@ -127,8 +127,8 @@ class WorkoutViewModel @Inject constructor(
                     
                     // Iniciar descanso automático si está configurado
                     val currentRoutine = _routine.value
-                    val exercise = currentRoutine?.exercises?.find { it.exerciseId == exerciseId }
-                    exercise?.restSeconds?.let { restSeconds ->
+                    val exercise = currentRoutine?.routineExercises?.find { it.routineExercise.exerciseId == exerciseId }
+                    exercise?.routineExercise?.restTimeSeconds?.let { restSeconds ->
                         if (restSeconds > 0) {
                             startRestTimer(restSeconds)
                         }
@@ -171,7 +171,7 @@ class WorkoutViewModel @Inject constructor(
      */
     fun nextExercise() {
         val routine = _routine.value ?: return
-        if (_currentExerciseIndex.value < routine.exercises.size - 1) {
+        if (_currentExerciseIndex.value < routine.routineExercises.size - 1) {
             _currentExerciseIndex.value++
         }
     }
