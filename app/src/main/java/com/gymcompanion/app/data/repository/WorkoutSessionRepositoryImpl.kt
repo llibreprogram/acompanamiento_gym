@@ -1,6 +1,6 @@
 package com.gymcompanion.app.data.repository
 
-import com.gymcompanion.app.data.local.dao.WorkoutSessionDao
+import com.gymcompanion.app.data.local.dao.WorkoutDao
 import com.gymcompanion.app.data.local.entity.WorkoutSessionEntity
 import com.gymcompanion.app.data.local.entity.ExerciseSetEntity
 import com.gymcompanion.app.data.local.entity.WorkoutSessionWithSets
@@ -14,7 +14,7 @@ import javax.inject.Inject
  * Implementación del repositorio de sesiones de entrenamiento
  */
 class WorkoutSessionRepositoryImpl @Inject constructor(
-    private val workoutSessionDao: WorkoutSessionDao
+    private val workoutDao: WorkoutDao
 ) : WorkoutSessionRepository {
     
     override fun getAllSessions(): Flow<List<WorkoutSessionEntity>> {
