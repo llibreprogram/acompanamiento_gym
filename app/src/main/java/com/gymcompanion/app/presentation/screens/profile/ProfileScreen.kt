@@ -256,9 +256,12 @@ fun ProfileScreen(
     
     // Dialog de métricas corporales
     if (showBodyMetricsDialog) {
+        val user = currentUser
+        val metrics = latestMetrics
+        
         BodyMetricsDialog(
-            currentMetrics = latestMetrics,
-            currentUser = currentUser,
+            currentMetrics = metrics,
+            currentUser = user,
             onDismiss = { showBodyMetricsDialog = false },
             onSave = { weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes ->
                 viewModel.saveBodyMetrics(

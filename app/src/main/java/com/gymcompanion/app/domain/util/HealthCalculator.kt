@@ -151,7 +151,7 @@ object HealthCalculator {
     enum class HeartRateZone(
         val minPercent: Double,
         val maxPercent: Double,
-        val name: String,
+        val zoneName: String,
         val description: String,
         val color: String
     ) {
