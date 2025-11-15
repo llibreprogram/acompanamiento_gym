@@ -16,6 +16,8 @@ import kotlin.random.Random
 /**
  * Generador inteligente de rutinas basado en ciencia del entrenamiento
  * Aplica principios de periodización, volumen óptimo y frecuencia
+ * 
+ * Versión 1.1 - Filtrado de equipamiento mejorado
  */
 class RoutineGeneratorUseCase @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
