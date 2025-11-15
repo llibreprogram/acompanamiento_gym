@@ -23,6 +23,15 @@ jobs:
         clean: true
         fetch-depth: 0
     
+    - name: Verify checkout and show file content
+      run: |
+        echo "Current commit:"
+        git log -1 --oneline
+        echo "File lines 125-135:"
+        sed -n '125,135p' app/src/main/java/com/gymcompanion/app/domain/usecase/RoutineGeneratorUseCase.kt
+        echo "Checking for userEquipment:"
+        grep -n "userEquipment" app/src/main/java/com/gymcompanion/app/domain/usecase/RoutineGeneratorUseCase.kt || echo "NOT FOUND!"
+    
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
