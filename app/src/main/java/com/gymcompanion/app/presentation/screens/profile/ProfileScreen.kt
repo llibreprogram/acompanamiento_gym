@@ -30,10 +30,20 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val userPreferences by viewModel.userPreferences.collectAsState()
     
-    // Estados derivados para forzar recomposición
-    val weightUnit by remember { derivedStateOf { userPreferences?.weightUnit ?: "kg" } }
-    val heightUnit by remember { derivedStateOf { userPreferences?.heightUnit ?: "cm" } }
-    val distanceUnit by remember { derivedStateOf { userPreferences?.distanceUnit ?: "km" } }
+    // Estados locales para unidades (se actualizan con LaunchedEffect)
+    var weightUnit by remember { mutableStateOf("kg") }
+    var heightUnit by remember { mutableStateOf("cm") }
+    var distanceUnit by remember { mutableStateOf("km") }
+    
+    // Actualizar estados locales cuando cambian las preferencias
+    LaunchedEffect(userPreferences) {
+        userPreferences?.let { prefs ->
+            android.util.Log.d("ProfileScreen", "Preferencias actualizadas: weight=${prefs.weightUnit}, height=${prefs.heightUnit}, distance=${prefs.distanceUnit}")
+            weightUnit = prefs.weightUnit
+            heightUnit = prefs.heightUnit
+            distanceUnit = prefs.distanceUnit
+        } ?: android.util.Log.d("ProfileScreen", "userPreferences es null")
+    }
     
     var showBodyMetricsDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }

@@ -310,8 +310,10 @@ class ProfileViewModel @Inject constructor(
     fun updateWeightUnit(unit: String) {
         viewModelScope.launch {
             currentUser.value?.let { user ->
+                android.util.Log.d("ProfileViewModel", "Actualizando weightUnit a $unit para user ${user.id}")
                 userPreferencesRepository.updateWeightUnit(user.id, unit)
-            }
+                android.util.Log.d("ProfileViewModel", "weightUnit actualizado en BD")
+            } ?: android.util.Log.e("ProfileViewModel", "currentUser es null, no se puede actualizar weightUnit")
         }
     }
     
@@ -321,8 +323,10 @@ class ProfileViewModel @Inject constructor(
     fun updateHeightUnit(unit: String) {
         viewModelScope.launch {
             currentUser.value?.let { user ->
+                android.util.Log.d("ProfileViewModel", "Actualizando heightUnit a $unit para user ${user.id}")
                 userPreferencesRepository.updateHeightUnit(user.id, unit)
-            }
+                android.util.Log.d("ProfileViewModel", "heightUnit actualizado en BD")
+            } ?: android.util.Log.e("ProfileViewModel", "currentUser es null, no se puede actualizar heightUnit")
         }
     }
     

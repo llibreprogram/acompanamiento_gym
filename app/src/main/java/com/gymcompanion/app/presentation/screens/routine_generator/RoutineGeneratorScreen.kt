@@ -91,14 +91,20 @@ fun RoutineGeneratorScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Step content
-                AnimatedContent(
-                    targetState = currentStep,
-                    transitionSpec = {
-                        fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                    },
-                    label = "step_animation"
-                ) { step ->
+                // Step content - with weight to fill space but not overflow
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    AnimatedContent(
+                        targetState = currentStep,
+                        transitionSpec = {
+                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                        },
+                        label = "step_animation",
+                        modifier = Modifier.fillMaxSize()
+                    ) { step ->
                     when (step) {
                         0 -> GoalSelectionStep(
                             selectedGoal = uiState.selectedGoal,
@@ -125,9 +131,7 @@ fun RoutineGeneratorScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.weight(1f))
-                
-                // Navigation buttons
+                // Navigation buttons (sin Spacer weight - siempre visible)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
