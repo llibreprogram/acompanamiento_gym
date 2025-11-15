@@ -151,6 +151,38 @@ class ProfileViewModel @Inject constructor(
     }
     
     /**
+     * Actualiza todos los datos personales del usuario a la vez
+     */
+    fun updateUserData(name: String, gender: String, dateOfBirth: Long) {
+        viewModelScope.launch {
+            try {
+                val user = currentUser.value
+                if (user != null) {
+                    // Usuario existe, actualizarlo
+                    val updatedUser = user.copy(
+                        name = name,
+                        gender = gender,
+                        dateOfBirth = dateOfBirth,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    userRepository.updateUser(updatedUser)
+                } else {
+                    // Usuario no existe, crearlo con los datos proporcionados
+                    val newUser = UserEntity(
+                        name = name,
+                        email = null,
+                        dateOfBirth = dateOfBirth,
+                        gender = gender
+                    )
+                    userRepository.insertUser(newUser)
+                }
+            } catch (e: Exception) {
+                _uiState.value = ProfileUiState.Error("Error al actualizar usuario: ${e.message}")
+            }
+        }
+    }
+    
+    /**
      * Actualiza el nombre del usuario
      */
     fun updateUserName(name: String) {

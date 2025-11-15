@@ -43,7 +43,9 @@ fun RoutineGeneratorScreen(
     // Navigate back when routine is generated successfully
     LaunchedEffect(uiState.isGenerated) {
         if (uiState.isGenerated) {
+            kotlinx.coroutines.delay(500) // Dar tiempo para mostrar mensaje
             onRoutineGenerated()
+            viewModel.resetWizard() // Reset para próxima vez
         }
     }
     

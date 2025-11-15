@@ -281,9 +281,7 @@ fun ProfileScreen(
                 showBodyMetricsDialog = false
             },
             onUserDataUpdated = { name, gender, dateOfBirth ->
-                viewModel.updateUserName(name)
-                viewModel.updateUserGender(gender)
-                viewModel.updateUserDateOfBirth(dateOfBirth)
+                viewModel.updateUserData(name, gender, dateOfBirth)
             }
         )
     }

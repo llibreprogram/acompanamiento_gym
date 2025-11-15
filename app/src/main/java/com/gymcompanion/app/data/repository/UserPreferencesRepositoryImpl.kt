@@ -19,14 +19,20 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     }
     
     override suspend fun updateWeightUnit(userId: Long, unit: String) {
+        // Asegurar que existen preferencias
+        initializeDefaultPreferences(userId)
         userPreferencesDao.updateWeightUnit(userId, unit)
     }
     
     override suspend fun updateHeightUnit(userId: Long, unit: String) {
+        // Asegurar que existen preferencias
+        initializeDefaultPreferences(userId)
         userPreferencesDao.updateHeightUnit(userId, unit)
     }
     
     override suspend fun updateDistanceUnit(userId: Long, unit: String) {
+        // Asegurar que existen preferencias
+        initializeDefaultPreferences(userId)
         userPreferencesDao.updateDistanceUnit(userId, unit)
     }
     
