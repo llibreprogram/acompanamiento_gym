@@ -129,6 +129,7 @@ fun RoutineGeneratorScreen(
                             onGenerate = { viewModel.generateRoutine() }
                         )
                     }
+                    }
                 }
                 
                 // Navigation buttons (sin Spacer weight - siempre visible)
