@@ -55,7 +55,7 @@ class RoutineGeneratorUseCase @Inject constructor(
             
             val selectedExercises = selectBalancedExercises(
                 exercises = exercises,
-                equipment = request.equipment,
+                equipmentFilter = request.equipment,
                 targetCount = 6 // 6 ejercicios por sesión
             )
             
@@ -262,12 +262,14 @@ class RoutineGeneratorUseCase @Inject constructor(
             val (sets, reps) = calculateOptimalVolume(goal, level, exercise.exerciseType)
             
             routineRepository.addExerciseToRoutine(
-                routineId = routineId,
-                exerciseId = exercise.id,
-                orderIndex = index,
-                plannedSets = sets,
-                plannedReps = "$reps",
-                restTimeSeconds = calculateRestTime(goal, exercise.exerciseType)
+                RoutineExerciseEntity(
+                    routineId = routineId,
+                    exerciseId = exercise.id,
+                    orderIndex = index,
+                    plannedSets = sets,
+                    plannedReps = "$reps",
+                    restTimeSeconds = calculateRestTime(goal, exercise.exerciseType)
+                )
             )
         }
         
