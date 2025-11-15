@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+@file:Suppress("DEPRECATION")
+
 package com.gymcompanion.app.presentation.screens.routine_generator
 
 import androidx.compose.animation.AnimatedContent
@@ -15,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -454,7 +456,6 @@ fun FrequencySelectionStep(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        @Suppress("DEPRECATION")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -489,7 +490,6 @@ fun FrequencySelectionStep(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        @Suppress("DEPRECATION")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly

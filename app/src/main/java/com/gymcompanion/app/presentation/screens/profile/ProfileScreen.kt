@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+@file:Suppress("DEPRECATION")
+
 package com.gymcompanion.app.presentation.screens.profile
 
 import androidx.compose.foundation.layout.*
@@ -15,7 +18,6 @@ import androidx.navigation.NavController
  * Pantalla de perfil del usuario
  * Muestra y permite editar datos corporales y preferencias
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController? = null,
@@ -244,7 +246,6 @@ fun PreferenceSwitchRow(
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )
         
-        @Suppress("DEPRECATION")
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
