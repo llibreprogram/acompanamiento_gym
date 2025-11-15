@@ -112,9 +112,19 @@ class RoutineGeneratorUseCase @Inject constructor(
                 else -> emptyList()
             }
             
-            val selectedExercises = exercises.filter { ex ->
-                muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
-            }.take(7)
+            val selectedExercises = exercises
+                .filter { ex ->
+                    muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
+                }
+                .filter { ex ->
+                    when (request.equipment) {
+                        AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipment == "Peso Corporal"
+                        AvailableEquipment.HOME_BASIC -> ex.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
+                        AvailableEquipment.MINIMAL -> ex.equipment in listOf("Mancuernas", "Peso Corporal")
+                        AvailableEquipment.FULL_GYM -> true
+                    }
+                }
+                .take(7)
             
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -162,9 +172,19 @@ class RoutineGeneratorUseCase @Inject constructor(
                 listOf("Piernas", "Core")
             }
             
-            val selectedExercises = exercises.filter { ex ->
-                muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
-            }.take(7)
+            val selectedExercises = exercises
+                .filter { ex ->
+                    muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
+                }
+                .filter { ex ->
+                    when (request.equipment) {
+                        AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipment == "Peso Corporal"
+                        AvailableEquipment.HOME_BASIC -> ex.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
+                        AvailableEquipment.MINIMAL -> ex.equipment in listOf("Mancuernas", "Peso Corporal")
+                        AvailableEquipment.FULL_GYM -> true
+                    }
+                }
+                .take(7)
             
             val routineId = createRoutineWithExercises(
                 userId = userId,

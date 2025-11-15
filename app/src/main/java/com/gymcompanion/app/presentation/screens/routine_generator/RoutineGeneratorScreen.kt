@@ -454,6 +454,7 @@ fun FrequencySelectionStep(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
+        @Suppress("DEPRECATION")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -488,6 +489,7 @@ fun FrequencySelectionStep(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
+        @Suppress("DEPRECATION")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly

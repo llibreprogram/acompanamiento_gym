@@ -244,6 +244,7 @@ fun PreferenceSwitchRow(
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )
         
+        @Suppress("DEPRECATION")
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
