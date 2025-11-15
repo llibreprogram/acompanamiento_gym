@@ -60,6 +60,9 @@ fun GymCompanionNavigation() {
                     },
                     onCreateRoutine = {
                         navController.navigate(Screen.RoutineGenerator.route)
+                    },
+                    onViewDetails = { routineId ->
+                        navController.navigate(Screen.RoutineDetail.createRoute(routineId))
                     }
                 )
             }
@@ -69,6 +72,18 @@ fun GymCompanionNavigation() {
                         navController.popBackStack()
                         navController.navigate(Screen.Routines.route)
                     }
+                )
+            }
+            composable(
+                route = Screen.RoutineDetail.route,
+                arguments = listOf(
+                    navArgument("routineId") { type = NavType.LongType }
+                )
+            ) { backStackEntry ->
+                val routineId = backStackEntry.arguments?.getLong("routineId") ?: 0L
+                com.gymcompanion.app.presentation.screens.routines.RoutineDetailScreen(
+                    routineId = routineId,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Exercises.route) {

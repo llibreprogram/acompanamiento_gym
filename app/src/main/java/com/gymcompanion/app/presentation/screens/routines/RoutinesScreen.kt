@@ -27,7 +27,8 @@ import com.gymcompanion.app.data.local.entity.RoutineWithExercises
 fun RoutinesScreen(
     viewModel: RoutinesViewModel = hiltViewModel(),
     onRoutineClick: (Long) -> Unit = {},
-    onCreateRoutine: () -> Unit = {}
+    onCreateRoutine: () -> Unit = {},
+    onViewDetails: (Long) -> Unit = {}
 ) {
     val allRoutines by viewModel.allRoutines.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -86,6 +87,7 @@ fun RoutinesScreen(
                         RoutineCard(
                             routineWithExercises = routineWithExercises,
                             onClick = { onRoutineClick(routineWithExercises.routine.id) },
+                            onViewDetails = { onViewDetails(routineWithExercises.routine.id) },
                             onDelete = {
                                 routineToDelete = routineWithExercises
                                 showDeleteDialog = true
@@ -131,6 +133,7 @@ fun RoutinesScreen(
 fun RoutineCard(
     routineWithExercises: RoutineWithExercises,
     onClick: () -> Unit,
+    onViewDetails: () -> Unit,
     onDelete: () -> Unit
 ) {
     val routine = routineWithExercises.routine
@@ -212,14 +215,28 @@ fun RoutineCard(
                 }
             }
             
-            // Botón de iniciar entrenamiento
-            Button(
-                onClick = onClick,
-                modifier = Modifier.fillMaxWidth()
+            // Botones de acción
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Iniciar Entrenamiento")
+                OutlinedButton(
+                    onClick = onViewDetails,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.List, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Ver Ejercicios")
+                }
+                
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Iniciar")
+                }
             }
         }
     }
