@@ -109,6 +109,9 @@ class RoutineGeneratorUseCase @Inject constructor(
         val splits = listOf("Push", "Pull", "Legs", "Push", "Pull", "Legs").take(request.daysPerWeek)
         val routines = mutableListOf<RoutineEntity>()
         
+        // Workaround: Extract equipment to help Kotlin compiler resolve the reference
+        val userEquipment = request.equipment
+        
         days.zip(splits).forEach { (day, split) ->
             val muscleGroups = when (split) {
                 "Push" -> listOf("Pecho", "Hombros", "Tríceps")
@@ -122,7 +125,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                     muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
                 }
                 .filter { ex ->
-                    when (request.equipment) {
+                    when (userEquipment) {
                         AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipment == "Peso Corporal"
                         AvailableEquipment.HOME_BASIC -> ex.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
                         AvailableEquipment.MINIMAL -> ex.equipment in listOf("Mancuernas", "Peso Corporal")
@@ -177,12 +180,14 @@ class RoutineGeneratorUseCase @Inject constructor(
                 listOf("Piernas", "Core")
             }
             
+            // Workaround: Extract equipment to help Kotlin compiler resolve the reference
+            val userEquipment = request.equipment
             val selectedExercises = exercises
                 .filter { ex ->
                     muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
                 }
                 .filter { ex ->
-                    when (request.equipment) {
+                    when (userEquipment) {
                         AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipment == "Peso Corporal"
                         AvailableEquipment.HOME_BASIC -> ex.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
                         AvailableEquipment.MINIMAL -> ex.equipment in listOf("Mancuernas", "Peso Corporal")
