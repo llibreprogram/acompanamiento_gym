@@ -63,12 +63,12 @@ fun RoutineGeneratorScreen(
             if (!uiState.isGenerated) {
                 // Progress indicator
                 LinearProgressIndicator(
-                    progress = { (currentStep + 1) / 5f },
+                    progress = (currentStep + 1) / 5f,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp),
                     color = GymPrimary,
-                    trackColor = GymSurfaceVariant,
+                    trackColor = GymSurfaceVariant
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -683,13 +683,13 @@ fun SummaryStep(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 SummaryRow("Objetivo", uiState.selectedGoal?.name ?: "-")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
                 SummaryRow("Nivel", uiState.selectedLevel?.name ?: "-")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
                 SummaryRow("Frecuencia", "${uiState.daysPerWeek} días/semana")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
                 SummaryRow("Duración", "${uiState.sessionDuration} minutos/sesión")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
                 SummaryRow("Equipo", uiState.selectedEquipment?.name ?: "-")
             }
         }

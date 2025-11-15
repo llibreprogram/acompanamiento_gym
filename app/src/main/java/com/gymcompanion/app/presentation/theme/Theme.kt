@@ -38,7 +38,7 @@ private val LightColorScheme = lightColorScheme(
     onPrimaryContainer = GymPrimaryDark,
     secondary = GymSecondary,
     onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = Color(0xFFEDE9FE), // Violet-100
+    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFEDE9FE), // Violet-100
     onSecondaryContainer = GymPrimaryDark,
     tertiary = GymAccent,
     onTertiary = androidx.compose.ui.graphics.Color.White,
@@ -52,10 +52,10 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = GymTextSecondary,
     error = GymError,
     onError = androidx.compose.ui.graphics.Color.White,
-    errorContainer = Color(0xFFFEE2E2), // Red-100
-    onErrorContainer = Color(0xFF991B1B), // Red-800
+    errorContainer = androidx.compose.ui.graphics.Color(0xFFFEE2E2), // Red-100
+    onErrorContainer = androidx.compose.ui.graphics.Color(0xFF991B1B), // Red-800
     outline = GymTextTertiary,
-    outlineVariant = Color(0xFFE2E8F0) // Slate-200
+    outlineVariant = androidx.compose.ui.graphics.Color(0xFFE2E8F0) // Slate-200
 )
 
 @Composable

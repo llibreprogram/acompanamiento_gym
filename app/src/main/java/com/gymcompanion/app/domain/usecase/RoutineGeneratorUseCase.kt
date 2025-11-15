@@ -62,7 +62,6 @@ class RoutineGeneratorUseCase @Inject constructor(
             val routineId = createRoutineWithExercises(
                 userId = userId,
                 name = routineName,
-                dayOfWeek = day,
                 exercises = selectedExercises,
                 goal = request.goal,
                 level = request.level,
@@ -70,12 +69,13 @@ class RoutineGeneratorUseCase @Inject constructor(
             )
             
             routines.add(RoutineEntity(
-                routineId = routineId,
+                id = routineId,
                 userId = userId,
                 name = routineName,
                 description = "Rutina de cuerpo completo optimizada para ${request.goal.toSpanish()}",
-                dayOfWeek = day,
+                daysOfWeek = "[\"$day\"]",
                 isActive = true,
+                isAIGenerated = true,
                 duration = request.sessionDuration,
                 focusArea = "Cuerpo Completo",
                 difficulty = request.level.toSpanish(),
@@ -119,7 +119,6 @@ class RoutineGeneratorUseCase @Inject constructor(
             val routineId = createRoutineWithExercises(
                 userId = userId,
                 name = "$split - $day",
-                dayOfWeek = day,
                 exercises = selectedExercises,
                 goal = request.goal,
                 level = request.level,
@@ -127,12 +126,13 @@ class RoutineGeneratorUseCase @Inject constructor(
             )
             
             routines.add(RoutineEntity(
-                routineId = routineId,
+                id = routineId,
                 userId = userId,
                 name = "$split - $day",
                 description = "Enfoque en ${muscleGroups.joinToString(", ")}",
-                dayOfWeek = day,
+                daysOfWeek = "[\"$day\"]",
                 isActive = true,
+                isAIGenerated = true,
                 duration = request.sessionDuration,
                 focusArea = muscleGroups.firstOrNull() ?: split,
                 difficulty = request.level.toSpanish(),
@@ -169,7 +169,6 @@ class RoutineGeneratorUseCase @Inject constructor(
             val routineId = createRoutineWithExercises(
                 userId = userId,
                 name = "Tren $split - $day",
-                dayOfWeek = day,
                 exercises = selectedExercises,
                 goal = request.goal,
                 level = request.level,
@@ -177,12 +176,13 @@ class RoutineGeneratorUseCase @Inject constructor(
             )
             
             routines.add(RoutineEntity(
-                routineId = routineId,
+                id = routineId,
                 userId = userId,
                 name = "Tren $split - $day",
                 description = "Entrenamiento de tren ${split.lowercase()}",
-                dayOfWeek = day,
+                daysOfWeek = "[\"$day\"]",
                 isActive = true,
+                isAIGenerated = true,
                 duration = request.sessionDuration,
                 focusArea = split,
                 difficulty = request.level.toSpanish(),
@@ -198,11 +198,11 @@ class RoutineGeneratorUseCase @Inject constructor(
      */
     private fun selectBalancedExercises(
         exercises: List<ExerciseEntity>,
-        equipment: AvailableEquipment,
+        equipmentFilter: AvailableEquipment,
         targetCount: Int
     ): List<ExerciseEntity> {
         val filtered = exercises.filter { exercise ->
-            when (equipment) {
+            when (equipmentFilter) {
                 AvailableEquipment.BODYWEIGHT_ONLY -> exercise.equipment == "Peso Corporal"
                 AvailableEquipment.HOME_BASIC -> exercise.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
                 AvailableEquipment.MINIMAL -> exercise.equipment in listOf("Mancuernas", "Peso Corporal")
@@ -235,7 +235,6 @@ class RoutineGeneratorUseCase @Inject constructor(
     private suspend fun createRoutineWithExercises(
         userId: Long,
         name: String,
-        dayOfWeek: String,
         exercises: List<ExerciseEntity>,
         goal: FitnessGoal,
         level: FitnessLevel,
@@ -244,12 +243,13 @@ class RoutineGeneratorUseCase @Inject constructor(
         // Crear rutina
         val routineId = routineRepository.insertRoutine(
             RoutineEntity(
-                routineId = 0,
+                id = 0,
                 userId = userId,
                 name = name,
                 description = "Generado automáticamente",
-                dayOfWeek = dayOfWeek,
+                daysOfWeek = "[]",
                 isActive = true,
+                isAIGenerated = true,
                 duration = duration,
                 focusArea = "Generado",
                 difficulty = level.toSpanish(),
@@ -261,16 +261,13 @@ class RoutineGeneratorUseCase @Inject constructor(
         exercises.forEachIndexed { index, exercise ->
             val (sets, reps) = calculateOptimalVolume(goal, level, exercise.exerciseType)
             
-            routineRepository.insertRoutineExercise(
-                RoutineExerciseEntity(
-                    id = 0,
-                    routineId = routineId,
-                    exerciseId = exercise.exerciseId,
-                    orderIndex = index,
-                    plannedSets = sets,
-                    plannedReps = reps,
-                    restTimeSeconds = calculateRestTime(goal, exercise.exerciseType)
-                )
+            routineRepository.addExerciseToRoutine(
+                routineId = routineId,
+                exerciseId = exercise.id,
+                orderIndex = index,
+                plannedSets = sets,
+                plannedReps = "$reps",
+                restTimeSeconds = calculateRestTime(goal, exercise.exerciseType)
             )
         }
         
