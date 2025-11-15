@@ -144,6 +144,9 @@ fun RoutineGeneratorScreen(
                         onClick = {
                             if (currentStep < 4) {
                                 currentStep++
+                            } else {
+                                // Último paso: generar rutina
+                                viewModel.generateRoutine()
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -152,9 +155,9 @@ fun RoutineGeneratorScreen(
                             containerColor = GymPrimary
                         )
                     ) {
-                        Text(if (currentStep < 4) "Siguiente" else "Finalizar")
+                        Text(if (currentStep < 4) "Siguiente" else "Generar Rutina")
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        Icon(if (currentStep < 4) Icons.Default.ArrowForward else Icons.Default.CheckCircle, contentDescription = null)
                     }
                 }
             } else {

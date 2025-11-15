@@ -274,14 +274,12 @@ fun ProfileScreen(
             currentMetrics = metrics,
             currentUser = user,
             onDismiss = { showBodyMetricsDialog = false },
-            onSave = { weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes ->
-                viewModel.saveBodyMetrics(
+            onSaveComplete = { name, gender, dateOfBirth, weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes ->
+                viewModel.saveCompleteProfile(
+                    name, gender, dateOfBirth,
                     weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes
                 )
                 showBodyMetricsDialog = false
-            },
-            onUserDataUpdated = { name, gender, dateOfBirth ->
-                viewModel.updateUserData(name, gender, dateOfBirth)
             }
         )
     }

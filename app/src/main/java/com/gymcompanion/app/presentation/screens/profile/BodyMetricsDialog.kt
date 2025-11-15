@@ -24,7 +24,10 @@ fun BodyMetricsDialog(
     currentMetrics: BodyMetricsEntity?,
     currentUser: com.gymcompanion.app.data.local.entity.UserEntity?,
     onDismiss: () -> Unit,
-    onSave: (
+    onSaveComplete: (
+        name: String,
+        gender: String,
+        dateOfBirth: Long,
         weight: Double,
         height: Double,
         experienceLevel: String,
@@ -36,8 +39,7 @@ fun BodyMetricsDialog(
         armMeasurement: Double?,
         calfMeasurement: Double?,
         notes: String?
-    ) -> Unit,
-    onUserDataUpdated: (name: String, gender: String, dateOfBirth: Long) -> Unit
+    ) -> Unit
 ) {
     // Estados del formulario - Datos de usuario
     var userName by remember { mutableStateOf(currentUser?.name ?: "Usuario") }
@@ -364,11 +366,11 @@ fun BodyMetricsDialog(
                     heightError = h == null || h < 100 || h > 250
                     
                     if (!weightError && !heightError && w != null && h != null) {
-                        // Guardar datos de usuario
-                        onUserDataUpdated(userName, userGender, userDateOfBirth)
-                        
-                        // Guardar métricas corporales
-                        onSave(
+                        // Guardar todo junto
+                        onSaveComplete(
+                            userName,
+                            userGender,
+                            userDateOfBirth,
                             w,
                             h,
                             experienceLevel,

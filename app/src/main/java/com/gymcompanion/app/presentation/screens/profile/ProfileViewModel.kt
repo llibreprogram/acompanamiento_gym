@@ -98,6 +98,79 @@ class ProfileViewModel @Inject constructor(
     }
     
     /**
+     * Guarda perfil completo: datos personales + métricas corporales
+     */
+    fun saveCompleteProfile(
+        name: String,
+        gender: String,
+        dateOfBirth: Long,
+        weight: Double,
+        height: Double,
+        experienceLevel: String,
+        bodyFatPercentage: Double?,
+        chestMeasurement: Double?,
+        waistMeasurement: Double?,
+        hipsMeasurement: Double?,
+        thighMeasurement: Double?,
+        armMeasurement: Double?,
+        calfMeasurement: Double?,
+        notes: String?
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = ProfileUiState.Saving
+                
+                // 1. Crear/actualizar usuario
+                var userId: Long
+                val user = currentUser.value
+                if (user != null) {
+                    // Actualizar usuario existente
+                    val updatedUser = user.copy(
+                        name = name,
+                        gender = gender,
+                        dateOfBirth = dateOfBirth,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    userRepository.updateUser(updatedUser)
+                    userId = user.id
+                } else {
+                    // Crear nuevo usuario
+                    val newUser = UserEntity(
+                        name = name,
+                        email = null,
+                        dateOfBirth = dateOfBirth,
+                        gender = gender
+                    )
+                    userId = userRepository.insertUser(newUser)
+                }
+                
+                // 2. Guardar métricas corporales
+                val bmi = BodyMetricsEntity.calculateBMI(weight, height)
+                val metrics = BodyMetricsEntity(
+                    userId = userId,
+                    weight = weight,
+                    height = height,
+                    experienceLevel = experienceLevel,
+                    bmi = bmi,
+                    bodyFatPercentage = bodyFatPercentage,
+                    chestMeasurement = chestMeasurement,
+                    waistMeasurement = waistMeasurement,
+                    hipsMeasurement = hipsMeasurement,
+                    thighMeasurement = thighMeasurement,
+                    armMeasurement = armMeasurement,
+                    calfMeasurement = calfMeasurement,
+                    notes = notes
+                )
+                
+                bodyMetricsRepository.insertMetrics(metrics)
+                _uiState.value = ProfileUiState.Success
+            } catch (e: Exception) {
+                _uiState.value = ProfileUiState.Error(e.message ?: "Error al guardar: ${e.message}")
+            }
+        }
+    }
+    
+    /**
      * Guarda las métricas corporales del usuario
      */
     fun saveBodyMetrics(
