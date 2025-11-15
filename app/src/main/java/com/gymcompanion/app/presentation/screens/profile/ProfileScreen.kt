@@ -4,6 +4,8 @@
 package com.gymcompanion.app.presentation.screens.profile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -115,8 +117,29 @@ fun ProfileScreen(
                     
                     // Métricas corporales
                     latestMetrics?.let { metrics ->
-                        MetricRow("Peso", "${metrics.weight} kg")
-                        MetricRow("Altura", "${metrics.height} cm")
+                        val prefs = userPreferences
+                        val weightUnit = prefs?.weightUnit ?: "kg"
+                        val heightUnit = prefs?.heightUnit ?: "cm"
+                        
+                        // Convertir peso
+                        val displayWeight = if (weightUnit == "lb") {
+                            String.format("%.1f lb", metrics.weight * 2.20462)
+                        } else {
+                            String.format("%.1f kg", metrics.weight)
+                        }
+                        
+                        // Convertir altura
+                        val displayHeight = if (heightUnit == "ft") {
+                            val totalInches = metrics.height / 2.54
+                            val feet = (totalInches / 12).toInt()
+                            val inches = (totalInches % 12).toInt()
+                            "$feet'$inches\""
+                        } else {
+                            String.format("%.0f cm", metrics.height)
+                        }
+                        
+                        MetricRow("Peso", displayWeight)
+                        MetricRow("Altura", displayHeight)
                         MetricRow("IMC", String.format("%.1f", metrics.bmi))
                         MetricRow("% Grasa", metrics.bodyFatPercentage?.let { "${it}%" } ?: "--")
                         MetricRow("Nivel", when(metrics.experienceLevel) {
@@ -126,8 +149,12 @@ fun ProfileScreen(
                             else -> "No especificado"
                         })
                     } ?: run {
-                        MetricRow("Peso", "-- kg")
-                        MetricRow("Altura", "-- cm")
+                        val prefs = userPreferences
+                        val weightUnit = prefs?.weightUnit ?: "kg"
+                        val heightUnit = prefs?.heightUnit ?: "cm"
+                        
+                        MetricRow("Peso", "-- $weightUnit")
+                        MetricRow("Altura", "-- $heightUnit")
                         MetricRow("IMC", "--")
                         MetricRow("% Grasa", "-- %")
                         MetricRow("Nivel", "No especificado")
@@ -138,14 +165,18 @@ fun ProfileScreen(
             // Health Metrics Card (TMB, Calorías)
             if (currentUser != null && latestMetrics != null) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
                         Text(
                             text = "🔥 Métricas de Salud Personalizadas",

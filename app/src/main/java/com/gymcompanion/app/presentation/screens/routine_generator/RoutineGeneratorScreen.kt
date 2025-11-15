@@ -155,13 +155,25 @@ fun RoutineGeneratorScreen(
                                 viewModel.generateRoutine()
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
                         enabled = isStepValid(currentStep, uiState),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = GymPrimary
+                            containerColor = GymPrimary,
+                            disabledContainerColor = GymSurfaceVariant
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp,
+                            disabledElevation = 0.dp
                         )
                     ) {
-                        Text(if (currentStep < 4) "Siguiente" else "Generar Rutina")
+                        Text(
+                            if (currentStep < 4) "Siguiente" else "Generar Rutina",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(if (currentStep < 4) Icons.Default.ArrowForward else Icons.Default.CheckCircle, contentDescription = null)
                     }
@@ -240,8 +252,65 @@ fun GoalSelectionStep(
             "Selecciona tu meta principal para optimizar tu rutina",
             style = MaterialTheme.typography.bodyMedium,
             color = GymTextSecondary,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         )
+        
+        // Mensaje de ayuda
+        if (selectedGoal == null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "👉 Toca una opción para continuar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "✅ Presiona 'Siguiente' para continuar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
+        }
         
         val goals = listOf(
             Triple(FitnessGoal.WEIGHT_LOSS, Icons.Default.TrendingDown, "Pérdida de Peso") to "Quema calorías y reduce grasa corporal",
