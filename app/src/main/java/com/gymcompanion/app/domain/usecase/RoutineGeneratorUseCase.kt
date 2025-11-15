@@ -3,7 +3,10 @@ package com.gymcompanion.app.domain.usecase
 import com.gymcompanion.app.data.local.entity.ExerciseEntity
 import com.gymcompanion.app.data.local.entity.RoutineEntity
 import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
-import com.gymcompanion.app.domain.model.*
+import com.gymcompanion.app.domain.model.AvailableEquipment
+import com.gymcompanion.app.domain.model.FitnessGoal
+import com.gymcompanion.app.domain.model.FitnessLevel
+import com.gymcompanion.app.domain.model.RoutineGenerationRequest
 import com.gymcompanion.app.domain.repository.ExerciseRepository
 import com.gymcompanion.app.domain.repository.RoutineRepository
 import kotlinx.coroutines.flow.first
