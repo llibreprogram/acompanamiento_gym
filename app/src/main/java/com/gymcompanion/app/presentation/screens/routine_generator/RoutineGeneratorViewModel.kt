@@ -39,6 +39,20 @@ class RoutineGeneratorViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedEquipment = equipment)
     }
     
+    fun updateConsecutiveDays(consecutive: Boolean) {
+        _uiState.value = _uiState.value.copy(consecutiveDays = consecutive)
+    }
+    
+    fun togglePhysicalLimitation(limitation: PhysicalLimitation) {
+        val current = _uiState.value.physicalLimitations.toMutableList()
+        if (current.contains(limitation)) {
+            current.remove(limitation)
+        } else {
+            current.add(limitation)
+        }
+        _uiState.value = _uiState.value.copy(physicalLimitations = current)
+    }
+    
     fun generateRoutine() {
         val state = _uiState.value
         
@@ -56,7 +70,9 @@ class RoutineGeneratorViewModel @Inject constructor(
                     level = state.selectedLevel,
                     daysPerWeek = state.daysPerWeek,
                     sessionDuration = state.sessionDuration,
-                    equipment = state.selectedEquipment
+                    equipment = state.selectedEquipment,
+                    consecutiveDays = state.consecutiveDays,
+                    physicalLimitations = state.physicalLimitations
                 )
                 
                 val generatedRoutines = routineGeneratorUseCase.generateRoutine(request, userId = 1L)
@@ -87,6 +103,8 @@ data class RoutineGeneratorUiState(
     val daysPerWeek: Int = 4,
     val sessionDuration: Int = 60,
     val selectedEquipment: AvailableEquipment? = null,
+    val consecutiveDays: Boolean = false,
+    val physicalLimitations: List<PhysicalLimitation> = emptyList(),
     val isGenerating: Boolean = false,
     val isGenerated: Boolean = false,
     val generatedCount: Int = 0,

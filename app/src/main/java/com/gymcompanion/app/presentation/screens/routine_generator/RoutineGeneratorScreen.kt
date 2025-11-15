@@ -81,7 +81,7 @@ fun RoutineGeneratorScreen(
             if (!uiState.isGenerated) {
                 // Progress indicator
                 LinearProgressIndicator(
-                    progress = (currentStep + 1) / 5f,
+                    progress = (currentStep + 1) / 7f,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp),
@@ -117,14 +117,23 @@ fun RoutineGeneratorScreen(
                         2 -> FrequencySelectionStep(
                             daysPerWeek = uiState.daysPerWeek,
                             sessionDuration = uiState.sessionDuration,
+                            consecutiveDays = uiState.consecutiveDays,
                             onDaysChanged = { viewModel.updateDaysPerWeek(it) },
-                            onDurationChanged = { viewModel.updateSessionDuration(it) }
+                            onDurationChanged = { viewModel.updateSessionDuration(it) },
+                            onConsecutiveDaysChanged = { viewModel.updateConsecutiveDays(it) }
                         )
                         3 -> EquipmentSelectionStep(
                             selectedEquipment = uiState.selectedEquipment,
                             onEquipmentSelected = { viewModel.updateEquipment(it) }
                         )
-                        4 -> SummaryStep(
+                        4 -> PhysicalLimitationsStep(
+                            selectedLimitations = uiState.physicalLimitations,
+                            onLimitationToggle = { viewModel.togglePhysicalLimitation(it) }
+                        )
+                        5 -> RoutinePreviewStep(
+                            uiState = uiState
+                        )
+                        6 -> SummaryStep(
                             uiState = uiState,
                             onGenerate = { viewModel.generateRoutine() }
                         )
@@ -155,7 +164,7 @@ fun RoutineGeneratorScreen(
                     
                     Button(
                         onClick = {
-                            if (currentStep < 4) {
+                            if (currentStep < 6) {
                                 currentStep++
                             } else {
                                 // Último paso: generar rutina
@@ -177,12 +186,12 @@ fun RoutineGeneratorScreen(
                         )
                     ) {
                         Text(
-                            if (currentStep < 4) "Siguiente" else "Generar Rutina",
+                            if (currentStep < 6) "Siguiente" else "Generar Rutina",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(if (currentStep < 4) Icons.Default.ArrowForward else Icons.Default.CheckCircle, contentDescription = null)
+                        Icon(if (currentStep < 6) Icons.Default.ArrowForward else Icons.Default.CheckCircle, contentDescription = null)
                     }
                 }
             } else {
@@ -520,8 +529,10 @@ fun LevelCard(
 fun FrequencySelectionStep(
     daysPerWeek: Int,
     sessionDuration: Int,
+    consecutiveDays: Boolean,
     onDaysChanged: (Int) -> Unit,
-    onDurationChanged: (Int) -> Unit
+    onDurationChanged: (Int) -> Unit,
+    onConsecutiveDaysChanged: (Boolean) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -608,6 +619,46 @@ fun FrequencySelectionStep(
             }
         }
         
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Consecutive days
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (consecutiveDays) GymPrimaryLight.copy(alpha = 0.1f) else Color.White
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Entrenar días consecutivos",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        if (consecutiveDays) "Lun-Mar-Mie-Jue" else "Lun-Mie-Vie",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = GymTextSecondary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                Switch(
+                    checked = consecutiveDays,
+                    onCheckedChange = onConsecutiveDaysChanged,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = GymPrimary
+                    )
+                )
+            }
+        }
+        
         Spacer(modifier = Modifier.height(24.dp))
         
         Card(
@@ -626,7 +677,7 @@ fun FrequencySelectionStep(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    "Recomendamos 4-5 días por semana para resultados óptimos. Las sesiones de 60-75 minutos son ideales para completar el volumen necesario.",
+                    "Recomendamos 4-5 días por semana para resultados óptimos. Las sesiones de 60-75 minutos son ideales para completar el volumen necesario. ${if (consecutiveDays) "Entrenar días consecutivos requiere mejor recuperación." else "Días alternos permiten mejor recuperación muscular."}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = GymTextPrimary
                 )
@@ -890,13 +941,246 @@ fun SuccessScreen(
     }
 }
 
+@Composable
+fun PhysicalLimitationsStep(
+    selectedLimitations: List<PhysicalLimitation>,
+    onLimitationToggle: (PhysicalLimitation) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            "¿Tienes alguna limitación física?",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Text(
+            "Adaptaremos los ejercicios a tus necesidades (opcional)",
+            style = MaterialTheme.typography.bodyMedium,
+            color = GymTextSecondary,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+        
+        PhysicalLimitation.values().forEach { limitation ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp)
+                    .clickable { onLimitationToggle(limitation) },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (selectedLimitations.contains(limitation)) 
+                        GymPrimaryLight.copy(alpha = 0.1f) 
+                    else 
+                        Color.White
+                ),
+                border = if (selectedLimitations.contains(limitation))
+                    androidx.compose.foundation.BorderStroke(2.dp, GymPrimary)
+                else
+                    null
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            limitation.displayName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Evitará: ${limitation.affectedExercises.take(2).joinToString(", ")}...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = GymTextSecondary,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    Checkbox(
+                        checked = selectedLimitations.contains(limitation),
+                        onCheckedChange = { onLimitationToggle(limitation) },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = GymPrimary
+                        )
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(
+            colors = CardDefaults.cardColors(containerColor = GymInfo.copy(alpha = 0.1f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = GymInfo,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    "Si no tienes ninguna limitación, simplemente presiona 'Siguiente'. Puedes seleccionar múltiples opciones.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = GymTextPrimary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RoutinePreviewStep(
+    uiState: RoutineGeneratorUiState
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            "Vista previa de tu rutina",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Text(
+            "Revisa los detalles antes de generar",
+            style = MaterialTheme.typography.bodyMedium,
+            color = GymTextSecondary,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+        
+        // Goal
+        PreviewCard(
+            icon = Icons.Default.Flag,
+            title = "Objetivo",
+            content = when(uiState.selectedGoal) {
+                FitnessGoal.WEIGHT_LOSS -> "Pérdida de Peso"
+                FitnessGoal.MUSCLE_GAIN -> "Ganancia Muscular"
+                FitnessGoal.STRENGTH -> "Aumento de Fuerza"
+                FitnessGoal.ENDURANCE -> "Resistencia"
+                FitnessGoal.GENERAL_FITNESS -> "Fitness General"
+                FitnessGoal.BODY_RECOMPOSITION -> "Recomposición"
+                else -> "No especificado"
+            }
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Level
+        PreviewCard(
+            icon = Icons.Default.TrendingUp,
+            title = "Nivel",
+            content = when(uiState.selectedLevel) {
+                FitnessLevel.BEGINNER -> "Principiante"
+                FitnessLevel.INTERMEDIATE -> "Intermedio"
+                FitnessLevel.ADVANCED -> "Avanzado"
+                else -> "No especificado"
+            }
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Frequency
+        PreviewCard(
+            icon = Icons.Default.CalendarToday,
+            title = "Frecuencia",
+            content = "${uiState.daysPerWeek} días/semana - ${uiState.sessionDuration} min/sesión\n${if (uiState.consecutiveDays) "Días consecutivos" else "Días alternos"}"
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Equipment
+        PreviewCard(
+            icon = Icons.Default.FitnessCenter,
+            title = "Equipamiento",
+            content = when(uiState.selectedEquipment) {
+                AvailableEquipment.GYM_FULL -> "Gimnasio completo"
+                AvailableEquipment.HOME_BASIC -> "Casa (básico)"
+                AvailableEquipment.BODYWEIGHT_ONLY -> "Solo peso corporal"
+                AvailableEquipment.HOME_DUMBBELLS -> "Casa con mancuernas"
+                else -> "No especificado"
+            }
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Limitations
+        if (uiState.physicalLimitations.isNotEmpty()) {
+            PreviewCard(
+                icon = Icons.Default.HealthAndSafety,
+                title = "Limitaciones",
+                content = uiState.physicalLimitations.joinToString("\n") { "• ${it.displayName}" }
+            )
+        }
+    }
+}
+
+@Composable
+fun PreviewCard(
+    icon: ImageVector,
+    title: String,
+    content: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = GymPrimary,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = GymTextSecondary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = GymTextPrimary
+                )
+            }
+        }
+    }
+}
+
 fun isStepValid(step: Int, state: RoutineGeneratorUiState): Boolean {
     return when (step) {
         0 -> state.selectedGoal != null
         1 -> state.selectedLevel != null
         2 -> true // Always valid, has defaults
         3 -> state.selectedEquipment != null
-        4 -> true // Summary always valid
+        4 -> true // Limitations always valid (optional)
+        5 -> true // Preview always valid
+        6 -> true // Summary always valid
         else -> false
     }
 }
