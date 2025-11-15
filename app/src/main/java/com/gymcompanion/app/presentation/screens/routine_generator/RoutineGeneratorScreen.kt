@@ -1108,10 +1108,10 @@ fun RoutinePreviewStep(
             icon = Icons.Default.FitnessCenter,
             title = "Equipamiento",
             content = when(uiState.selectedEquipment) {
-                AvailableEquipment.GYM_FULL -> "Gimnasio completo"
+                AvailableEquipment.FULL_GYM -> "Gimnasio completo"
                 AvailableEquipment.HOME_BASIC -> "Casa (básico)"
                 AvailableEquipment.BODYWEIGHT_ONLY -> "Solo peso corporal"
-                AvailableEquipment.HOME_DUMBBELLS -> "Casa con mancuernas"
+                AvailableEquipment.MINIMAL -> "Equipamiento mínimo"
                 else -> "No especificado"
             }
         )
