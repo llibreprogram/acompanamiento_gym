@@ -208,18 +208,18 @@ fun ExerciseItemCard(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "🔢 ${routineExercise.routineExercise.sets} series",
+                        text = "🔢 ${routineExercise.routineExercise.plannedSets} series",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "🔁 ${routineExercise.routineExercise.reps} reps",
+                        text = "🔁 ${routineExercise.routineExercise.plannedReps} reps",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (routineExercise.routineExercise.restSeconds > 0) {
+                    if (routineExercise.routineExercise.restTimeSeconds > 0) {
                         Text(
-                            text = "⏸️ ${routineExercise.routineExercise.restSeconds}s",
+                            text = "⏸️ ${routineExercise.routineExercise.restTimeSeconds}s",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -236,7 +236,7 @@ fun ExerciseItemCard(
                         onClick = { },
                         label = { 
                             Text(
-                                routineExercise.exercise.primaryMuscle,
+                                routineExercise.exercise.muscleGroup,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         },
@@ -244,12 +244,12 @@ fun ExerciseItemCard(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
                     )
-                    if (!routineExercise.exercise.equipmentNeeded.isNullOrBlank()) {
+                    if (routineExercise.exercise.equipmentNeeded.isNotBlank()) {
                         AssistChip(
                             onClick = { },
                             label = { 
                                 Text(
-                                    routineExercise.exercise.equipmentNeeded ?: "",
+                                    routineExercise.exercise.equipmentNeeded,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             },
