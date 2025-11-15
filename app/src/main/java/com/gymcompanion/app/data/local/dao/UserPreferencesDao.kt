@@ -23,14 +23,14 @@ interface UserPreferencesDao {
     @Update
     suspend fun updatePreferences(preferences: UserPreferencesEntity)
     
-    @Query("UPDATE user_preferences SET weightUnit = :unit, updatedAt = :timestamp WHERE userId = :userId")
-    suspend fun updateWeightUnit(userId: Long, unit: String, timestamp: Long = System.currentTimeMillis())
+    @Query("UPDATE user_preferences SET weightUnit = :unit WHERE userId = :userId")
+    suspend fun updateWeightUnit(userId: Long, unit: String)
     
-    @Query("UPDATE user_preferences SET heightUnit = :unit, updatedAt = :timestamp WHERE userId = :userId")
-    suspend fun updateHeightUnit(userId: Long, unit: String, timestamp: Long = System.currentTimeMillis())
+    @Query("UPDATE user_preferences SET heightUnit = :unit WHERE userId = :userId")
+    suspend fun updateHeightUnit(userId: Long, unit: String)
     
-    @Query("UPDATE user_preferences SET distanceUnit = :unit, updatedAt = :timestamp WHERE userId = :userId")
-    suspend fun updateDistanceUnit(userId: Long, unit: String, timestamp: Long = System.currentTimeMillis())
+    @Query("UPDATE user_preferences SET distanceUnit = :unit WHERE userId = :userId")
+    suspend fun updateDistanceUnit(userId: Long, unit: String)
     
     @Query("UPDATE user_preferences SET theme = :theme WHERE userId = :userId")
     suspend fun updateTheme(userId: Long, theme: String)
