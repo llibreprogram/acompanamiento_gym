@@ -109,9 +109,6 @@ class RoutineGeneratorUseCase @Inject constructor(
         val splits = listOf("Push", "Pull", "Legs", "Push", "Pull", "Legs").take(request.daysPerWeek)
         val routines = mutableListOf<RoutineEntity>()
         
-        // Workaround: Extract equipment to help Kotlin compiler resolve the reference
-        val userEquipment = request.equipment
-        
         days.zip(splits).forEach { (day, split) ->
             val muscleGroups = when (split) {
                 "Push" -> listOf("Pecho", "Hombros", "Tríceps")
@@ -120,19 +117,13 @@ class RoutineGeneratorUseCase @Inject constructor(
                 else -> emptyList()
             }
             
-            val selectedExercises = exercises
-                .filter { ex ->
-                    muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
-                }
-                .filter { ex ->
-                    when (userEquipment) {
-                        AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipment == "Peso Corporal"
-                        AvailableEquipment.HOME_BASIC -> ex.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
-                        AvailableEquipment.MINIMAL -> ex.equipment in listOf("Mancuernas", "Peso Corporal")
-                        AvailableEquipment.FULL_GYM -> true
-                    }
-                }
-                .take(7)
+            // Filter by muscle group
+            val muscleFiltered = exercises.filter { ex ->
+                muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
+            }
+            
+            // Filter by equipment - using helper function to avoid compiler issues
+            val selectedExercises = filterByEquipment(muscleFiltered, request.equipment).take(7)
             
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -180,21 +171,13 @@ class RoutineGeneratorUseCase @Inject constructor(
                 listOf("Piernas", "Core")
             }
             
-            // Workaround: Extract equipment to help Kotlin compiler resolve the reference
-            val userEquipment = request.equipment
-            val selectedExercises = exercises
-                .filter { ex ->
-                    muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
-                }
-                .filter { ex ->
-                    when (userEquipment) {
-                        AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipment == "Peso Corporal"
-                        AvailableEquipment.HOME_BASIC -> ex.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
-                        AvailableEquipment.MINIMAL -> ex.equipment in listOf("Mancuernas", "Peso Corporal")
-                        AvailableEquipment.FULL_GYM -> true
-                    }
-                }
-                .take(7)
+            // Filter by muscle group
+            val muscleFiltered = exercises.filter { ex ->
+                muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
+            }
+            
+            // Filter by equipment - using helper function to avoid compiler issues
+            val selectedExercises = filterByEquipment(muscleFiltered, request.equipment).take(7)
             
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -231,14 +214,8 @@ class RoutineGeneratorUseCase @Inject constructor(
         equipmentFilter: AvailableEquipment,
         targetCount: Int
     ): List<ExerciseEntity> {
-        val filtered = exercises.filter { exercise ->
-            when (equipmentFilter) {
-                AvailableEquipment.BODYWEIGHT_ONLY -> exercise.equipment == "Peso Corporal"
-                AvailableEquipment.HOME_BASIC -> exercise.equipment in listOf("Mancuernas", "Barra", "Peso Corporal")
-                AvailableEquipment.MINIMAL -> exercise.equipment in listOf("Mancuernas", "Peso Corporal")
-                AvailableEquipment.FULL_GYM -> true
-            }
-        }
+        // Use the helper function instead of inline filtering
+        val filtered = filterByEquipment(exercises, equipmentFilter)
         
         val selected = mutableListOf<ExerciseEntity>()
         val priorities = listOf(
@@ -354,7 +331,26 @@ class RoutineGeneratorUseCase @Inject constructor(
         }
     }
     
-    // Extensiones de ayuda
+    // Funciones de ayuda
+    
+    /**
+     * Filtra ejercicios por equipamiento disponible
+     * Función auxiliar para evitar problemas de resolución del compilador Kotlin con lambdas anidados
+     */
+    private fun filterByEquipment(
+        exercises: List<ExerciseEntity>,
+        equipment: AvailableEquipment
+    ): List<ExerciseEntity> {
+        return exercises.filter { ex ->
+            when (equipment) {
+                AvailableEquipment.BODYWEIGHT_ONLY -> ex.equipmentNeeded == "Peso Corporal" || ex.equipmentNeeded == "bodyweight"
+                AvailableEquipment.HOME_BASIC -> ex.equipmentNeeded in listOf("Mancuernas", "Barra", "Peso Corporal", "dumbbell", "barbell", "bodyweight")
+                AvailableEquipment.MINIMAL -> ex.equipmentNeeded in listOf("Mancuernas", "Peso Corporal", "dumbbell", "bodyweight")
+                AvailableEquipment.FULL_GYM -> true
+            }
+        }
+    }
+    
     private fun FitnessGoal.toSpanish(): String = when (this) {
         FitnessGoal.WEIGHT_LOSS -> "pérdida de peso"
         FitnessGoal.MUSCLE_GAIN -> "ganancia muscular"
