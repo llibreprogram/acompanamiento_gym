@@ -39,17 +39,23 @@ fun RoutineGeneratorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var currentStep by remember { mutableIntStateOf(0) }
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     
     // Navigate back when routine is generated successfully
     LaunchedEffect(uiState.isGenerated) {
         if (uiState.isGenerated) {
-            kotlinx.coroutines.delay(500) // Dar tiempo para mostrar mensaje
+            snackbarHostState.showSnackbar(
+                message = "✅ ¡Rutina generada exitosamente! (${uiState.generatedCount} días)",
+                duration = androidx.compose.material3.SnackbarDuration.Short
+            )
+            kotlinx.coroutines.delay(1000) // Dar tiempo para ver el mensaje
             onRoutineGenerated()
             viewModel.resetWizard() // Reset para próxima vez
         }
     }
     
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { 

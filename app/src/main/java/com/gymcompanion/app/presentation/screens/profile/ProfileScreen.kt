@@ -201,55 +201,78 @@ fun ProfileScreen(
                 }
             }
             
-            // Unit Preferences Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+            // Unit Preferences Card - Siempre visible
+            if (currentUser != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    Text(
-                        text = "⚙️ Unidades de Medida",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Weight unit switcher
-                    PreferenceSwitchRow(
-                        label = "Peso",
-                        option1 = "kg",
-                        option2 = "lb",
-                        selectedOption = userPreferences?.weightUnit ?: "kg",
-                        onOptionSelected = { viewModel.updateWeightUnit(it) }
-                    )
-                    
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    
-                    // Height unit switcher
-                    PreferenceSwitchRow(
-                        label = "Altura",
-                        option1 = "cm",
-                        option2 = "ft",
-                        selectedOption = userPreferences?.heightUnit ?: "cm",
-                        onOptionSelected = { viewModel.updateHeightUnit(it) }
-                    )
-                    
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    
-                    // Distance unit switcher
-                    PreferenceSwitchRow(
-                        label = "Distancia",
-                        option1 = "km",
-                        option2 = "mi",
-                        selectedOption = userPreferences?.distanceUnit ?: "km",
-                        onOptionSelected = { viewModel.updateDistanceUnit(it) }
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "⚙️ Unidades de Medida",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        val prefs = userPreferences
+                        val weightUnit = prefs?.weightUnit ?: "kg"
+                        val heightUnit = prefs?.heightUnit ?: "cm"
+                        val distanceUnit = prefs?.distanceUnit ?: "km"
+                        
+                        // Weight unit switcher
+                        PreferenceSwitchRow(
+                            label = "Peso",
+                            option1 = "kg",
+                            option2 = "lb",
+                            selectedOption = weightUnit,
+                            onOptionSelected = { 
+                                viewModel.updateWeightUnit(it)
+                            }
+                        )
+                        
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        
+                        // Height unit switcher
+                        PreferenceSwitchRow(
+                            label = "Altura",
+                            option1 = "cm",
+                            option2 = "ft",
+                            selectedOption = heightUnit,
+                            onOptionSelected = { 
+                                viewModel.updateHeightUnit(it)
+                            }
+                        )
+                        
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        
+                        // Distance unit switcher
+                        PreferenceSwitchRow(
+                            label = "Distancia",
+                            option1 = "km",
+                            option2 = "mi",
+                            selectedOption = distanceUnit,
+                            onOptionSelected = { 
+                                viewModel.updateDistanceUnit(it)
+                            }
+                        )
+                        
+                        // Debug info
+                        if (prefs == null) {
+                            Text(
+                                text = "Inicializando preferencias...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
             
