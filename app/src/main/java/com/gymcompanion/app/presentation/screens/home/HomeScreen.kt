@@ -328,7 +328,7 @@ fun TodayRoutineModernCard(
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 ModernBadge(
-                    text = "Día ${routine.routine.dayOfWeek}",
+                    text = routine.routine.name,
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 )

@@ -155,37 +155,48 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         
-                        val age = currentUser.calculateAge()
-                        val bmr = com.gymcompanion.app.domain.util.HealthCalculator.calculateBMR(
-                            weight = latestMetrics.weight,
-                            height = latestMetrics.height,
-                            age = age,
-                            gender = currentUser.gender
-                        )
+                        val user = currentUser
+                        val metrics = latestMetrics
                         
-                        val tdee = com.gymcompanion.app.domain.util.HealthCalculator.calculateTDEE(
-                            bmr = bmr,
-                            activityLevel = com.gymcompanion.app.domain.util.HealthCalculator.ActivityLevel.MODERATELY_ACTIVE
-                        )
-                        
-                        val targetCalories = com.gymcompanion.app.domain.util.HealthCalculator.calculateTargetCalories(
-                            tdee = tdee,
-                            goal = com.gymcompanion.app.domain.util.HealthCalculator.FitnessGoal.MAINTENANCE
-                        )
-                        
-                        val maxHeartRate = com.gymcompanion.app.domain.util.HealthCalculator.calculateMaxHeartRate(age)
-                        
-                        MetricRow("TMB (Basal)", "${bmr.toInt()} kcal/día")
-                        MetricRow("TDEE (Activo)", "${tdee.toInt()} kcal/día")
-                        MetricRow("Calorías Objetivo", "${targetCalories.toInt()} kcal/día")
-                        MetricRow("FC Máxima", "$maxHeartRate bpm")
-                        
-                        Text(
-                            text = "💡 Basado en actividad moderada. Ajusta según tu nivel de ejercicio.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
+                        if (user != null && metrics != null) {
+                            val age = user.calculateAge()
+                            val bmr = com.gymcompanion.app.domain.util.HealthCalculator.calculateBMR(
+                                weight = metrics.weight,
+                                height = metrics.height,
+                                age = age,
+                                gender = user.gender
+                            )
+                            
+                            val tdee = com.gymcompanion.app.domain.util.HealthCalculator.calculateTDEE(
+                                bmr = bmr,
+                                activityLevel = com.gymcompanion.app.domain.util.HealthCalculator.ActivityLevel.MODERATELY_ACTIVE
+                            )
+                            
+                            val targetCalories = com.gymcompanion.app.domain.util.HealthCalculator.calculateTargetCalories(
+                                tdee = tdee,
+                                goal = com.gymcompanion.app.domain.util.HealthCalculator.FitnessGoal.MAINTENANCE
+                            )
+                            
+                            val maxHeartRate = com.gymcompanion.app.domain.util.HealthCalculator.calculateMaxHeartRate(age)
+                            
+                            MetricRow("TMB (Basal)", "${bmr.toInt()} kcal/día")
+                            MetricRow("TDEE (Activo)", "${tdee.toInt()} kcal/día")
+                            MetricRow("Calorías Objetivo", "${targetCalories.toInt()} kcal/día")
+                            MetricRow("FC Máxima", "$maxHeartRate bpm")
+                            
+                            Text(
+                                text = "💡 Basado en actividad moderada. Ajusta según tu nivel de ejercicio.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "Completa tu perfil y datos corporales para ver tus métricas de salud personalizadas.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             }
