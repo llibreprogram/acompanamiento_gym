@@ -137,11 +137,13 @@ fun RoutineGeneratorScreen(
                     if (currentStep > 0) {
                         OutlinedButton(
                             onClick = { currentStep-- },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
                         ) {
                             Icon(Icons.Default.ArrowBack, contentDescription = null)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Atrás")
+                            Text("Atrás", style = MaterialTheme.typography.titleMedium)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
@@ -156,7 +158,7 @@ fun RoutineGeneratorScreen(
                             }
                         },
                         modifier = Modifier
-                            .weight(1f)
+                            .then(if (currentStep == 0) Modifier.fillMaxWidth() else Modifier.weight(1f))
                             .height(56.dp),
                         enabled = isStepValid(currentStep, uiState),
                         colors = ButtonDefaults.buttonColors(
@@ -174,7 +176,7 @@ fun RoutineGeneratorScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Icon(if (currentStep < 4) Icons.Default.ArrowForward else Icons.Default.CheckCircle, contentDescription = null)
                     }
                 }

@@ -30,6 +30,11 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val userPreferences by viewModel.userPreferences.collectAsState()
     
+    // Estados derivados para forzar recomposición
+    val weightUnit by remember { derivedStateOf { userPreferences?.weightUnit ?: "kg" } }
+    val heightUnit by remember { derivedStateOf { userPreferences?.heightUnit ?: "cm" } }
+    val distanceUnit by remember { derivedStateOf { userPreferences?.distanceUnit ?: "km" } }
+    
     var showBodyMetricsDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
@@ -117,10 +122,6 @@ fun ProfileScreen(
                     
                     // Métricas corporales
                     latestMetrics?.let { metrics ->
-                        val prefs = userPreferences
-                        val weightUnit = prefs?.weightUnit ?: "kg"
-                        val heightUnit = prefs?.heightUnit ?: "cm"
-                        
                         // Convertir peso
                         val displayWeight = if (weightUnit == "lb") {
                             String.format("%.1f lb", metrics.weight * 2.20462)
@@ -149,10 +150,6 @@ fun ProfileScreen(
                             else -> "No especificado"
                         })
                     } ?: run {
-                        val prefs = userPreferences
-                        val weightUnit = prefs?.weightUnit ?: "kg"
-                        val heightUnit = prefs?.heightUnit ?: "cm"
-                        
                         MetricRow("Peso", "-- $weightUnit")
                         MetricRow("Altura", "-- $heightUnit")
                         MetricRow("IMC", "--")
@@ -252,11 +249,6 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         
-                        val prefs = userPreferences
-                        val weightUnit = prefs?.weightUnit ?: "kg"
-                        val heightUnit = prefs?.heightUnit ?: "cm"
-                        val distanceUnit = prefs?.distanceUnit ?: "km"
-                        
                         // Weight unit switcher
                         PreferenceSwitchRow(
                             label = "Peso",
@@ -295,9 +287,16 @@ fun ProfileScreen(
                         )
                         
                         // Debug info
-                        if (prefs == null) {
+                        if (userPreferences == null) {
                             Text(
                                 text = "Inicializando preferencias...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "✅ Unidades: ${weightUnit}, ${heightUnit}, ${distanceUnit}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(top = 8.dp)
