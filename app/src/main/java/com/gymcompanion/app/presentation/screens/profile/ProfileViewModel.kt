@@ -166,6 +166,36 @@ class ProfileViewModel @Inject constructor(
     }
     
     /**
+     * Actualiza el género del usuario
+     */
+    fun updateUserGender(gender: String) {
+        viewModelScope.launch {
+            currentUser.value?.let { user ->
+                val updatedUser = user.copy(
+                    gender = gender,
+                    updatedAt = System.currentTimeMillis()
+                )
+                userRepository.updateUser(updatedUser)
+            }
+        }
+    }
+    
+    /**
+     * Actualiza la fecha de nacimiento del usuario
+     */
+    fun updateUserDateOfBirth(dateOfBirthMillis: Long) {
+        viewModelScope.launch {
+            currentUser.value?.let { user ->
+                val updatedUser = user.copy(
+                    dateOfBirth = dateOfBirthMillis,
+                    updatedAt = System.currentTimeMillis()
+                )
+                userRepository.updateUser(updatedUser)
+            }
+        }
+    }
+    
+    /**
      * Actualiza la unidad de peso (kg/lb)
      */
     fun updateWeightUnit(unit: String) {

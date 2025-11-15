@@ -104,6 +104,16 @@ fun ProfileScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     
+                    // Datos personales
+                    MetricRow("Género", when(currentUser?.gender) {
+                        "male" -> "♂️ Hombre"
+                        "female" -> "♀️ Mujer"
+                        "other" -> "Otro"
+                        else -> "No especificado"
+                    })
+                    MetricRow("Edad", "${currentUser?.calculateAge() ?: "--"} años")
+                    
+                    // Métricas corporales
                     latestMetrics?.let { metrics ->
                         MetricRow("Peso", "${metrics.weight} kg")
                         MetricRow("Altura", "${metrics.height} cm")
@@ -115,13 +125,67 @@ fun ProfileScreen(
                             "advanced" -> "Avanzado"
                             else -> "No especificado"
                         })
-                        MetricRow("Edad", "${currentUser?.calculateAge() ?: "--"} años")
                     } ?: run {
                         MetricRow("Peso", "-- kg")
                         MetricRow("Altura", "-- cm")
                         MetricRow("IMC", "--")
                         MetricRow("% Grasa", "-- %")
                         MetricRow("Nivel", "No especificado")
+                    }
+                }
+            }
+            
+            // Health Metrics Card (TMB, Calorías)
+            if (currentUser != null && latestMetrics != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "🔥 Métricas de Salud Personalizadas",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        val age = currentUser.calculateAge()
+                        val bmr = com.gymcompanion.app.domain.util.HealthCalculator.calculateBMR(
+                            weight = latestMetrics.weight,
+                            height = latestMetrics.height,
+                            age = age,
+                            gender = currentUser.gender
+                        )
+                        
+                        val tdee = com.gymcompanion.app.domain.util.HealthCalculator.calculateTDEE(
+                            bmr = bmr,
+                            activityLevel = com.gymcompanion.app.domain.util.HealthCalculator.ActivityLevel.MODERATELY_ACTIVE
+                        )
+                        
+                        val targetCalories = com.gymcompanion.app.domain.util.HealthCalculator.calculateTargetCalories(
+                            tdee = tdee,
+                            goal = com.gymcompanion.app.domain.util.HealthCalculator.FitnessGoal.MAINTENANCE
+                        )
+                        
+                        val maxHeartRate = com.gymcompanion.app.domain.util.HealthCalculator.calculateMaxHeartRate(age)
+                        
+                        MetricRow("TMB (Basal)", "${bmr.toInt()} kcal/día")
+                        MetricRow("TDEE (Activo)", "${tdee.toInt()} kcal/día")
+                        MetricRow("Calorías Objetivo", "${targetCalories.toInt()} kcal/día")
+                        MetricRow("FC Máxima", "$maxHeartRate bpm")
+                        
+                        Text(
+                            text = "💡 Basado en actividad moderada. Ajusta según tu nivel de ejercicio.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
             }
@@ -194,12 +258,18 @@ fun ProfileScreen(
     if (showBodyMetricsDialog) {
         BodyMetricsDialog(
             currentMetrics = latestMetrics,
+            currentUser = currentUser,
             onDismiss = { showBodyMetricsDialog = false },
             onSave = { weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes ->
                 viewModel.saveBodyMetrics(
                     weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes
                 )
                 showBodyMetricsDialog = false
+            },
+            onUserDataUpdated = { name, gender, dateOfBirth ->
+                viewModel.updateUserName(name)
+                viewModel.updateUserGender(gender)
+                viewModel.updateUserDateOfBirth(dateOfBirth)
             }
         )
     }

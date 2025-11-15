@@ -40,6 +40,13 @@ fun RoutineGeneratorScreen(
     val uiState by viewModel.uiState.collectAsState()
     var currentStep by remember { mutableIntStateOf(0) }
     
+    // Navigate back when routine is generated successfully
+    LaunchedEffect(uiState.isGenerated) {
+        if (uiState.isGenerated) {
+            onRoutineGenerated()
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(

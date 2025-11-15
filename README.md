@@ -1,10 +1,24 @@
-# 🏋️ Gym Companion - Asistente Personal de Fitness
+# 🏋️ Gym Companion - La App de Fitness Más Inteligente del Mundo
 
-**Gym Companion** es una aplicación Android nativa diseñada para acompañarte en tus sesiones de gimnasio, gestionar rutinas personalizadas y evolucionar tus entrenamientos basándose en tu progreso individual.
+**Gym Companion** es una aplicación Android de próxima generación que combina **Inteligencia Artificial**, **ciencia del deporte** y **diseño moderno** para ofrecer la experiencia de fitness más personalizada y efectiva jamás creada.
+
+> **Visión:** Ser la única app que TODO atleta, desde principiante hasta profesional, quiere usar todos los días.
+
+📖 **[Ver Roadmap Completo →](ROADMAP.md)**
+
+## ⚡ Lo Que Nos Hace Únicos
+
+1. 🧠 **IA Verdaderamente Inteligente** - Adaptación real, no solo templates
+2. 🔬 **Ciencia Primero** - Basado en estudios científicos
+3. 🎯 **Personalización Total** - Cada usuario es único
+4. 🎨 **Diseño de Siguiente Generación** - UI que inspira
+5. 🛡️ **Prevención de Lesiones** - Cuidamos tu salud
+6. 📈 **Progresión Automática** - Siempre mejorando
+7. 🎓 **Educación Continua** - Aprendes mientras entrenas
 
 ## 📋 Características Principales
 
-### ✅ Implementadas en MVP
+### ✅ FASE 1: Fundamentos (COMPLETADO)
 - ✅ **Arquitectura Clean + MVVM** con inyección de dependencias (Hilt)
 - ✅ **Base de datos Room** con 7 entidades relacionales y auto-inicialización
 - ✅ **Sistema completo de datos corporales**: peso, altura, edad, IMC, % grasa, medidas
@@ -20,10 +34,52 @@
 - ✅ **Repositorios completos**: 5 repositorios con interfaces y implementaciones
 - ✅ **48 archivos Kotlin** con Clean Architecture
 
-### 🚧 En Desarrollo
-- 🔄 Pantalla de crear/editar rutinas con selector de ejercicios
-- 🔄 Motor de recomendaciones basado en IA
-- 🔄 Integración con wearables
+### � FASE 2: IA y Personalización (EN PROGRESO - 60%)
+
+**Generador Inteligente de Rutinas** (80% completado)
+- ✅ Algoritmo de generación basado en objetivos (hipertrofia, fuerza, pérdida de peso)
+- ✅ 3 tipos de splits automáticos (PPL, Upper/Lower, Full Body)
+- ✅ Selección inteligente por equipo disponible
+- ✅ Wizard interactivo de 5 pasos
+- 🔄 Navegación y confirmación
+- ⏳ Vista previa y ajustes manuales
+
+**Perfil de Usuario Completo** (40% completado)
+- ✅ Nombre, altura, peso
+- ✅ Paleta de colores moderna Material You
+- ✅ Sistema de conversión de unidades (kg/lb, cm/ft)
+- ⚡ EN PROGRESO: Género (Hombre/Mujer/Otro)
+- ⚡ EN PROGRESO: Edad/fecha de nacimiento
+- ⏳ Nivel de actividad física
+- ⏳ Cálculos personalizados (TMB, calorías, FC objetivo)
+
+### ⏳ PRÓXIMAS FASES
+
+**FASE 3: Modernización UI/UX**
+- Diseño glassmorphism
+- Animaciones fluidas
+- Dashboard personalizable
+- Temas dinámicos
+
+**FASE 4: Análisis Avanzado**
+- Gráficos interactivos con ML
+- Predicciones de progreso
+- Métricas avanzadas (TMB, VO2 max, etc.)
+- Sistema de logros
+
+**FASE 5: Nutrición Inteligente**
+- Calculadora de macros por género/edad
+- Tracking de comidas
+- Generador de menús
+- Sugerencias de recetas
+
+**FASE 6: Características Premium**
+- Entrenador virtual con voz
+- Análisis de forma con IA
+- Integración con wearables
+- Comunidad y competencias
+
+📖 **[Ver Roadmap Detallado](ROADMAP.md)** para timeline completo y features planeadas
 
 ## 🏗️ Arquitectura del Proyecto
 

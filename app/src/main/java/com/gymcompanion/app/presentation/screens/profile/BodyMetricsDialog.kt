@@ -11,6 +11,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.gymcompanion.app.data.local.entity.BodyMetricsEntity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Dialog para capturar/editar datos corporales del usuario
@@ -19,6 +22,7 @@ import com.gymcompanion.app.data.local.entity.BodyMetricsEntity
 @Composable
 fun BodyMetricsDialog(
     currentMetrics: BodyMetricsEntity?,
+    currentUser: com.gymcompanion.app.data.local.entity.UserEntity?,
     onDismiss: () -> Unit,
     onSave: (
         weight: Double,
@@ -32,9 +36,16 @@ fun BodyMetricsDialog(
         armMeasurement: Double?,
         calfMeasurement: Double?,
         notes: String?
-    ) -> Unit
+    ) -> Unit,
+    onUserDataUpdated: (name: String, gender: String, dateOfBirth: Long) -> Unit
 ) {
-    // Estados del formulario
+    // Estados del formulario - Datos de usuario
+    var userName by remember { mutableStateOf(currentUser?.name ?: "Usuario") }
+    var userGender by remember { mutableStateOf(currentUser?.gender ?: "other") }
+    var userDateOfBirth by remember { mutableStateOf(currentUser?.dateOfBirth ?: System.currentTimeMillis() - (25 * 365 * 24 * 60 * 60 * 1000L)) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    // Estados del formulario - Métricas corporales
     var weight by remember { mutableStateOf(currentMetrics?.weight?.toString() ?: "") }
     var height by remember { mutableStateOf(currentMetrics?.height?.toString() ?: "") }
     var bodyFat by remember { mutableStateOf(currentMetrics?.bodyFatPercentage?.toString() ?: "") }
@@ -83,9 +94,79 @@ fun BodyMetricsDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Datos personales
+                Text(
+                    text = "👤 Datos Personales",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                // Nombre
+                OutlinedTextField(
+                    value = userName,
+                    onValueChange = { userName = it },
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // Género
+                Text(
+                    text = "Género",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = userGender == "male",
+                        onClick = { userGender = "male" },
+                        label = { Text("Hombre") },
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = if (userGender == "male") {
+                            { Text("♂️") }
+                        } else null
+                    )
+                    FilterChip(
+                        selected = userGender == "female",
+                        onClick = { userGender = "female" },
+                        label = { Text("Mujer") },
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = if (userGender == "female") {
+                            { Text("♀️") }
+                        } else null
+                    )
+                    FilterChip(
+                        selected = userGender == "other",
+                        onClick = { userGender = "other" },
+                        label = { Text("Otro") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // Fecha de nacimiento
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Fecha de Nacimiento: ${formatDate(userDateOfBirth)}")
+                }
+                
+                val calculatedAge = calculateAge(userDateOfBirth)
+                Text(
+                    text = "Edad: $calculatedAge años",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Divider()
+                
                 // Datos básicos obligatorios
                 Text(
-                    text = "Datos Básicos (Obligatorios)",
+                    text = "📊 Datos Corporales (Obligatorios)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -283,6 +364,10 @@ fun BodyMetricsDialog(
                     heightError = h == null || h < 100 || h > 250
                     
                     if (!weightError && !heightError && w != null && h != null) {
+                        // Guardar datos de usuario
+                        onUserDataUpdated(userName, userGender, userDateOfBirth)
+                        
+                        // Guardar métricas corporales
                         onSave(
                             w,
                             h,
@@ -308,6 +393,36 @@ fun BodyMetricsDialog(
             }
         }
     )
+    
+    // DatePicker Dialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = userDateOfBirth
+        )
+        
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            userDateOfBirth = millis
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
 
 @Composable
@@ -354,4 +469,35 @@ fun ExperienceLevelOption(
             )
         }
     }
+}
+
+/**
+ * Formatea un timestamp en formato de fecha legible
+ */
+private fun formatDate(timestamp: Long): String {
+    val date = java.util.Date(timestamp)
+    val format = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+    return format.format(date)
+}
+
+/**
+ * Calcula la edad a partir de un timestamp de fecha de nacimiento
+ */
+private fun calculateAge(dateOfBirthMillis: Long): Int {
+    val birthDate = java.util.Date(dateOfBirthMillis)
+    val today = java.util.Date()
+    
+    val birthYear = birthDate.year + 1900
+    val currentYear = today.year + 1900
+    
+    var age = currentYear - birthYear
+    
+    // Ajustar si aún no ha cumplido años este año
+    val birthMonth = birthDate.month
+    val currentMonth = today.month
+    if (currentMonth < birthMonth || (currentMonth == birthMonth && today.date < birthDate.date)) {
+        age--
+    }
+    
+    return age
 }
