@@ -72,12 +72,16 @@ class ProfileViewModel @Inject constructor(
             try {
                 _uiState.value = ProfileUiState.Loading
                 
-                // Crear usuario por defecto si no existe
-                currentUser.first { it != null }?.let { user ->
-                    // Inicializar preferencias por defecto si no existen
+                // Esperar el primer valor del usuario
+                kotlinx.coroutines.delay(100) // Dar tiempo a la base de datos
+                val user = currentUser.value
+                
+                if (user != null) {
+                    // Usuario existe, inicializar preferencias
                     userPreferencesRepository.initializeDefaultPreferences(user.id)
                     _uiState.value = ProfileUiState.Success
-                } ?: run {
+                } else {
+                    // No hay usuario, crear uno por defecto
                     createDefaultUser()
                 }
             } catch (e: Exception) {
