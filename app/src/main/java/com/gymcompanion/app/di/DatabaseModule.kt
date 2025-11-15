@@ -64,4 +64,10 @@ object DatabaseModule {
     fun provideWorkoutDao(database: GymDatabase): WorkoutDao {
         return database.workoutDao()
     }
+    
+    @Provides
+    @Singleton
+    fun provideUserPreferencesDao(database: GymDatabase): UserPreferencesDao {
+        return database.userPreferencesDao()
+    }
 }

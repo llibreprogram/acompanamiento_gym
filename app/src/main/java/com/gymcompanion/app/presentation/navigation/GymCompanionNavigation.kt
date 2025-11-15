@@ -59,8 +59,15 @@ fun GymCompanionNavigation() {
                         navController.navigate(Screen.WorkoutSession.createRoute(routineId))
                     },
                     onCreateRoutine = {
-                        // Funcionalidad de crear rutina se implementará en la próxima fase
-                        // Por ahora, el usuario puede modificar las rutinas existentes
+                        navController.navigate(Screen.RoutineGenerator.route)
+                    }
+                )
+            }
+            composable(Screen.RoutineGenerator.route) {
+                com.gymcompanion.app.presentation.screens.routine_generator.RoutineGeneratorScreen(
+                    onRoutineGenerated = {
+                        navController.popBackStack()
+                        navController.navigate(Screen.Routines.route)
                     }
                 )
             }

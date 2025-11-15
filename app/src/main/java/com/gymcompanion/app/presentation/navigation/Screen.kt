@@ -28,4 +28,7 @@ sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
     object BodyMetricsSetup : Screen("body_metrics_setup")
     object BodyMetricsEdit : Screen("body_metrics_edit")
+    
+    // AI Features
+    object RoutineGenerator : Screen("routine_generator")
 }

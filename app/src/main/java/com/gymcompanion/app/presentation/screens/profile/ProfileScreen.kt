@@ -24,6 +24,7 @@ fun ProfileScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val latestMetrics by viewModel.latestMetrics.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val userPreferences by viewModel.userPreferences.collectAsState()
     
     var showBodyMetricsDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -123,6 +124,58 @@ fun ProfileScreen(
                 }
             }
             
+            // Unit Preferences Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "⚙️ Unidades de Medida",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Weight unit switcher
+                    PreferenceSwitchRow(
+                        label = "Peso",
+                        option1 = "kg",
+                        option2 = "lb",
+                        selectedOption = userPreferences?.weightUnit ?: "kg",
+                        onOptionSelected = { viewModel.updateWeightUnit(it) }
+                    )
+                    
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    
+                    // Height unit switcher
+                    PreferenceSwitchRow(
+                        label = "Altura",
+                        option1 = "cm",
+                        option2 = "ft",
+                        selectedOption = userPreferences?.heightUnit ?: "cm",
+                        onOptionSelected = { viewModel.updateHeightUnit(it) }
+                    )
+                    
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    
+                    // Distance unit switcher
+                    PreferenceSwitchRow(
+                        label = "Distancia",
+                        option1 = "km",
+                        option2 = "mi",
+                        selectedOption = userPreferences?.distanceUnit ?: "km",
+                        onOptionSelected = { viewModel.updateDistanceUnit(it) }
+                    )
+                }
+            }
+            
             // Show error snackbar if needed
             LaunchedEffect(uiState) {
                 if (uiState is ProfileUiState.Error) {
@@ -168,5 +221,51 @@ fun MetricRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
         )
+    }
+}
+
+@Composable
+fun PreferenceSwitchRow(
+    label: String,
+    option1: String,
+    option2: String,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            FilterChip(
+                selected = selectedOption == option1,
+                onClick = { onOptionSelected(option1) },
+                label = { Text(option1) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+            FilterChip(
+                selected = selectedOption == option2,
+                onClick = { onOptionSelected(option2) },
+                label = { Text(option2) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
     }
 }

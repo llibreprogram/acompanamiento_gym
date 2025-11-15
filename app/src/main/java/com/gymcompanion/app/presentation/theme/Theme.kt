@@ -16,22 +16,46 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = GymPrimaryLight,
+    secondary = GymSecondary,
+    tertiary = GymAccentLight,
+    background = androidx.compose.ui.graphics.Color(0xFF0F172A), // Slate-900
+    surface = androidx.compose.ui.graphics.Color(0xFF1E293B), // Slate-800
+    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF334155), // Slate-700
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onSecondary = androidx.compose.ui.graphics.Color.White,
+    onTertiary = androidx.compose.ui.graphics.Color.Black,
+    onBackground = androidx.compose.ui.graphics.Color(0xFFF1F5F9), // Slate-100
+    onSurface = androidx.compose.ui.graphics.Color(0xFFF8FAFC), // Slate-50
+    error = GymError,
+    onError = androidx.compose.ui.graphics.Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = GymPrimary,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    background = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
-    surface = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
     onPrimary = androidx.compose.ui.graphics.Color.White,
+    primaryContainer = GymPrimaryLight,
+    onPrimaryContainer = GymPrimaryDark,
+    secondary = GymSecondary,
     onSecondary = androidx.compose.ui.graphics.Color.White,
+    secondaryContainer = Color(0xFFEDE9FE), // Violet-100
+    onSecondaryContainer = GymPrimaryDark,
+    tertiary = GymAccent,
     onTertiary = androidx.compose.ui.graphics.Color.White,
-    onBackground = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-    onSurface = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
+    tertiaryContainer = GymAccentLight,
+    onTertiaryContainer = GymPrimaryDark,
+    background = GymBackground,
+    onBackground = GymTextPrimary,
+    surface = GymSurface,
+    onSurface = GymTextPrimary,
+    surfaceVariant = GymSurfaceVariant,
+    onSurfaceVariant = GymTextSecondary,
+    error = GymError,
+    onError = androidx.compose.ui.graphics.Color.White,
+    errorContainer = Color(0xFFFEE2E2), // Red-100
+    onErrorContainer = Color(0xFF991B1B), // Red-800
+    outline = GymTextTertiary,
+    outlineVariant = Color(0xFFE2E8F0) // Slate-200
 )
 
 @Composable

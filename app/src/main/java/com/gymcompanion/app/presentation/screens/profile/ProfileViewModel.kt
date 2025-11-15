@@ -17,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val bodyMetricsRepository: BodyMetricsRepository
+    private val bodyMetricsRepository: BodyMetricsRepository,
+    private val userPreferencesRepository: com.gymcompanion.app.domain.repository.UserPreferencesRepository
 ) : ViewModel() {
     
     // Estado del usuario actual
@@ -43,6 +44,21 @@ class ProfileViewModel @Inject constructor(
             initialValue = null
         )
     
+    // Preferencias del usuario
+    val userPreferences = currentUser
+        .flatMapLatest { user ->
+            if (user != null) {
+                userPreferencesRepository.getPreferences(user.id)
+            } else {
+                flowOf(null)
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+    
     // Estado de UI
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -57,7 +73,9 @@ class ProfileViewModel @Inject constructor(
                 _uiState.value = ProfileUiState.Loading
                 
                 // Crear usuario por defecto si no existe
-                currentUser.first { it != null }?.let {
+                currentUser.first { it != null }?.let { user ->
+                    // Inicializar preferencias por defecto si no existen
+                    userPreferencesRepository.initializeDefaultPreferences(user.id)
                     _uiState.value = ProfileUiState.Success
                 } ?: run {
                     createDefaultUser()
@@ -143,6 +161,39 @@ class ProfileViewModel @Inject constructor(
                     updatedAt = System.currentTimeMillis()
                 )
                 userRepository.updateUser(updatedUser)
+            }
+        }
+    }
+    
+    /**
+     * Actualiza la unidad de peso (kg/lb)
+     */
+    fun updateWeightUnit(unit: String) {
+        viewModelScope.launch {
+            currentUser.value?.let { user ->
+                userPreferencesRepository.updateWeightUnit(user.id, unit)
+            }
+        }
+    }
+    
+    /**
+     * Actualiza la unidad de altura (cm/ft)
+     */
+    fun updateHeightUnit(unit: String) {
+        viewModelScope.launch {
+            currentUser.value?.let { user ->
+                userPreferencesRepository.updateHeightUnit(user.id, unit)
+            }
+        }
+    }
+    
+    /**
+     * Actualiza la unidad de distancia (km/mi)
+     */
+    fun updateDistanceUnit(unit: String) {
+        viewModelScope.launch {
+            currentUser.value?.let { user ->
+                userPreferencesRepository.updateDistanceUnit(user.id, unit)
             }
         }
     }
