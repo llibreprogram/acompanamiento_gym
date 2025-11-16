@@ -47,7 +47,11 @@ class RoutineGeneratorUseCase @Inject constructor(
         userId: Long,
         exercises: List<ExerciseEntity>
     ): List<RoutineEntity> {
-        val days = listOf("Lunes", "Miércoles", "Viernes")
+        val days = if (request.consecutiveDays) {
+            listOf("Lunes", "Martes", "Miércoles")
+        } else {
+            listOf("Lunes", "Miércoles", "Viernes")
+        }
         val routines = mutableListOf<RoutineEntity>()
         
         days.forEachIndexed { index, day ->
@@ -61,7 +65,8 @@ class RoutineGeneratorUseCase @Inject constructor(
             val selectedExercises = selectBalancedExercises(
                 exercises = exercises,
                 equipmentFilter = request.equipment,
-                targetCount = 6 // 6 ejercicios por sesión
+                targetCount = 6, // 6 ejercicios por sesión
+                physicalLimitations = request.physicalLimitations
             )
             
             val routineId = createRoutineWithExercises(
@@ -101,9 +106,17 @@ class RoutineGeneratorUseCase @Inject constructor(
         exercises: List<ExerciseEntity>
     ): List<RoutineEntity> {
         val days = if (request.daysPerWeek == 6) {
-            listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+            if (request.consecutiveDays) {
+                listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+            } else {
+                listOf("Lunes", "Martes", "Miércoles", "Viernes", "Sábado", "Domingo")
+            }
         } else {
-            listOf("Lunes", "Martes", "Jueves", "Viernes", "Sábado")
+            if (request.consecutiveDays) {
+                listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes")
+            } else {
+                listOf("Lunes", "Martes", "Jueves", "Viernes", "Sábado")
+            }
         }
         
         val splits = listOf("Push", "Pull", "Legs", "Push", "Pull", "Legs").take(request.daysPerWeek)
@@ -118,12 +131,28 @@ class RoutineGeneratorUseCase @Inject constructor(
             }
             
             // Filter by muscle group
-            val muscleFiltered = exercises.filter { ex ->
+            var muscleFiltered = exercises.filter { ex ->
                 muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
             }
             
             // Filter by equipment - using helper function to avoid compiler issues
-            val selectedExercises = filterByEquipment(muscleFiltered, request.equipment).take(7)
+            var selectedExercises = filterByEquipment(muscleFiltered, request.equipment)
+            
+            // Filter by physical limitations
+            selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
+            
+            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
+            if (selectedExercises.size < 5) {
+                selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
+            }
+            if (selectedExercises.size < 3) {
+                selectedExercises = filterByPhysicalLimitations(
+                    filterByEquipment(exercises, request.equipment), 
+                    request.physicalLimitations
+                )
+            }
+            
+            selectedExercises = selectedExercises.take(7)
             
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -172,12 +201,28 @@ class RoutineGeneratorUseCase @Inject constructor(
             }
             
             // Filter by muscle group
-            val muscleFiltered = exercises.filter { ex ->
+            var muscleFiltered = exercises.filter { ex ->
                 muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
             }
             
             // Filter by equipment - using helper function to avoid compiler issues
-            val selectedExercises = filterByEquipment(muscleFiltered, request.equipment).take(7)
+            var selectedExercises = filterByEquipment(muscleFiltered, request.equipment)
+            
+            // Filter by physical limitations
+            selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
+            
+            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
+            if (selectedExercises.size < 5) {
+                selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
+            }
+            if (selectedExercises.size < 3) {
+                selectedExercises = filterByPhysicalLimitations(
+                    filterByEquipment(exercises, request.equipment),
+                    request.physicalLimitations
+                )
+            }
+            
+            selectedExercises = selectedExercises.take(7)
             
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -212,10 +257,19 @@ class RoutineGeneratorUseCase @Inject constructor(
     private fun selectBalancedExercises(
         exercises: List<ExerciseEntity>,
         equipmentFilter: AvailableEquipment,
-        targetCount: Int
+        targetCount: Int,
+        physicalLimitations: List<com.gymcompanion.app.domain.model.PhysicalLimitation> = emptyList()
     ): List<ExerciseEntity> {
-        // Use the helper function instead of inline filtering
-        val filtered = filterByEquipment(exercises, equipmentFilter)
+        // Filter by equipment
+        var filtered = filterByEquipment(exercises, equipmentFilter)
+        
+        // Filter by physical limitations
+        filtered = filterByPhysicalLimitations(filtered, physicalLimitations)
+        
+        // FALLBACK: Si no hay suficientes ejercicios con el filtro, usar todos
+        if (filtered.size < targetCount) {
+            filtered = exercises
+        }
         
         val selected = mutableListOf<ExerciseEntity>()
         val priorities = listOf(
@@ -231,6 +285,12 @@ class RoutineGeneratorUseCase @Inject constructor(
                 .shuffled()
                 .take(count)
             selected.addAll(muscleExercises)
+        }
+        
+        // FALLBACK: Si aún no tenemos suficientes, rellenar con ejercicios aleatorios
+        if (selected.size < targetCount) {
+            val remaining = filtered.filterNot { it in selected }.shuffled().take(targetCount - selected.size)
+            selected.addAll(remaining)
         }
         
         return selected.take(targetCount)
@@ -348,6 +408,25 @@ class RoutineGeneratorUseCase @Inject constructor(
                 AvailableEquipment.MINIMAL -> ex.equipmentNeeded in listOf("Mancuernas", "Peso Corporal", "dumbbell", "bodyweight")
                 AvailableEquipment.FULL_GYM -> true
             }
+        }
+    }
+    
+    /**
+     * Filtra ejercicios excluyendo aquellos contraindicados por limitaciones físicas
+     */
+    private fun filterByPhysicalLimitations(
+        exercises: List<ExerciseEntity>,
+        limitations: List<com.gymcompanion.app.domain.model.PhysicalLimitation>
+    ): List<ExerciseEntity> {
+        if (limitations.isEmpty()) return exercises
+        
+        // Obtener todos los ejercicios a excluir
+        val excludedExercises = limitations.flatMap { it.affectedExercises }.map { it.lowercase() }
+        
+        return exercises.filter { exercise ->
+            val exerciseName = exercise.name.lowercase()
+            // Excluir si el nombre contiene algún término prohibido
+            !excludedExercises.any { excluded -> exerciseName.contains(excluded) }
         }
     }
     
