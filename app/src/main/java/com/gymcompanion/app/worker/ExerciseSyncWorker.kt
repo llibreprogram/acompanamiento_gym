@@ -51,32 +51,29 @@ class ExerciseSyncWorker @AssistedInject constructor(
             
             result.fold(
                 onSuccess = { exercisesSynced ->
-                    // Reportar éxito
                     setProgress(workDataOf(
                         STATUS_KEY to STATUS_SUCCESS,
                         TOTAL_KEY to exercisesSynced,
                         MESSAGE_KEY to "Sincronizados $exercisesSynced ejercicios"
                     ))
-                    
-                    Result.success(workDataOf(
+                    // Solo pares clave-valor simples
+                    return@withContext Result.success(workDataOf(
                         TOTAL_KEY to exercisesSynced,
                         MESSAGE_KEY to "Sincronización completada exitosamente"
                     ))
                 },
                 onFailure = { exception ->
-                    // Reportar error
                     setProgress(workDataOf(
                         STATUS_KEY to STATUS_ERROR,
                         MESSAGE_KEY to "Error: ${exception.message}"
                     ))
-                    
-                    // Reintentar si es un error de red
                     if (exception is java.io.IOException || 
                         exception.message?.contains("timeout", ignoreCase = true) == true) {
-                        Result.retry()
+                        return@withContext Result.retry()
                     } else {
-                        Result.failure(workDataOf(
-                            MESSAGE_KEY to exception.message ?: "Error desconocido"
+                        // Sintaxis correcta para workDataOf
+                        return@withContext Result.failure(workDataOf(
+                            MESSAGE_KEY to (exception.message ?: "Error desconocido")
                         ))
                     }
                 }
@@ -87,8 +84,8 @@ class ExerciseSyncWorker @AssistedInject constructor(
                 MESSAGE_KEY to "Error inesperado: ${e.message}"
             ))
             
-            Result.failure(workDataOf(
-                MESSAGE_KEY to e.message ?: "Error inesperado"
+            return Result.failure(workDataOf(
+                MESSAGE_KEY to (e.message ?: "Error inesperado")
             ))
         }
     }
