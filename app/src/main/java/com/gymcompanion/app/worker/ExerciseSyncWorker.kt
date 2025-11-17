@@ -84,7 +84,7 @@ class ExerciseSyncWorker @AssistedInject constructor(
                 MESSAGE_KEY to "Error inesperado: ${e.message}"
             ))
             
-            return Result.failure(workDataOf(
+            return@withContext Result.failure(workDataOf(
                 MESSAGE_KEY to (e.message ?: "Error inesperado")
             ))
         }
