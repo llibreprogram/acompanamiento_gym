@@ -17,11 +17,12 @@ import kotlin.random.Random
  * Generador inteligente de rutinas basado en ciencia del entrenamiento
  * Aplica principios de periodización, volumen óptimo y frecuencia
  * 
- * Versión 1.2 - Workaround para resolución de tipos en Kotlin compiler
+ * Versión 2.0 - IA mejorada con análisis científico
  */
 class RoutineGeneratorUseCase @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
-    private val routineRepository: RoutineRepository
+    private val routineRepository: RoutineRepository,
+    private val smartAnalyzer: SmartExerciseAnalyzer
 ) {
     
     /**
@@ -66,7 +67,9 @@ class RoutineGeneratorUseCase @Inject constructor(
                 exercises = exercises,
                 equipmentFilter = request.equipment,
                 targetCount = 6, // 6 ejercicios por sesión
-                physicalLimitations = request.physicalLimitations
+                physicalLimitations = request.physicalLimitations,
+                goal = request.goal,
+                level = request.level
             )
             
             val routineId = createRoutineWithExercises(
@@ -252,13 +255,15 @@ class RoutineGeneratorUseCase @Inject constructor(
     }
     
     /**
-     * Selecciona ejercicios balanceados para cuerpo completo
+     * Selecciona ejercicios balanceados para cuerpo completo usando IA
      */
     private fun selectBalancedExercises(
         exercises: List<ExerciseEntity>,
         equipmentFilter: AvailableEquipment,
         targetCount: Int,
-        physicalLimitations: List<com.gymcompanion.app.domain.model.PhysicalLimitation> = emptyList()
+        physicalLimitations: List<com.gymcompanion.app.domain.model.PhysicalLimitation> = emptyList(),
+        goal: FitnessGoal = FitnessGoal.GENERAL_FITNESS,
+        level: FitnessLevel = FitnessLevel.INTERMEDIATE
     ): List<ExerciseEntity> {
         // Filter by equipment
         var filtered = filterByEquipment(exercises, equipmentFilter)
@@ -272,6 +277,9 @@ class RoutineGeneratorUseCase @Inject constructor(
         }
         
         val selected = mutableListOf<ExerciseEntity>()
+        val musclesWorked = mutableMapOf<String, Int>()
+        
+        // ANÁLISIS INTELIGENTE: Priorizar grupos musculares importantes
         val priorities = listOf(
             "Piernas" to 2,    // 2 ejercicios de piernas
             "Pecho" to 1,      // 1 de pecho
@@ -281,17 +289,50 @@ class RoutineGeneratorUseCase @Inject constructor(
         )
         
         priorities.forEach { (muscle, count) ->
-            val muscleExercises = filtered.filter { it.muscleGroup.contains(muscle, ignoreCase = true) }
-                .shuffled()
+            val muscleExercises = filtered
+                .filter { it.muscleGroup.contains(muscle, ignoreCase = true) }
+                .map { exercise ->
+                    val suitability = smartAnalyzer.calculateExerciseSuitability(
+                        exercise = exercise,
+                        goal = goal,
+                        level = level,
+                        currentMusclesWorked = musclesWorked,
+                        limitations = physicalLimitations
+                    )
+                    exercise to suitability
+                }
+                .sortedByDescending { it.second }
                 .take(count)
+                .map { it.first }
+            
             selected.addAll(muscleExercises)
+            musclesWorked[muscle] = (musclesWorked[muscle] ?: 0) + muscleExercises.size
         }
         
-        // FALLBACK: Si aún no tenemos suficientes, rellenar con ejercicios aleatorios
+        // FALLBACK: Si aún no tenemos suficientes, rellenar con los mejores ejercicios disponibles
         if (selected.size < targetCount) {
-            val remaining = filtered.filterNot { it in selected }.shuffled().take(targetCount - selected.size)
+            val remaining = filtered
+                .filterNot { it in selected }
+                .map { exercise ->
+                    val suitability = smartAnalyzer.calculateExerciseSuitability(
+                        exercise = exercise,
+                        goal = goal,
+                        level = level,
+                        currentMusclesWorked = musclesWorked,
+                        limitations = physicalLimitations
+                    )
+                    exercise to suitability
+                }
+                .sortedByDescending { it.second }
+                .take(targetCount - selected.size)
+                .map { it.first }
+            
             selected.addAll(remaining)
         }
+        
+        // Verificar balance push/pull
+        val pushPullAnalysis = smartAnalyzer.analyzePushPullRatio(selected)
+        // Podrías usar esta información para ajustar la selección si es necesario
         
         return selected.take(targetCount)
     }
@@ -335,7 +376,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                     orderIndex = index,
                     plannedSets = sets,
                     plannedReps = "$reps",
-                    restTimeSeconds = calculateRestTime(goal, exercise.exerciseType)
+                    restTimeSeconds = calculateRestTime(goal, exercise.exerciseType, level)
                 )
             )
         }
@@ -344,7 +385,7 @@ class RoutineGeneratorUseCase @Inject constructor(
     }
     
     /**
-     * Calcula volumen óptimo (series x reps) según objetivo
+     * Calcula volumen óptimo (series x reps) según objetivo usando IA
      */
     private fun calculateOptimalVolume(
         goal: FitnessGoal,
@@ -353,42 +394,33 @@ class RoutineGeneratorUseCase @Inject constructor(
     ): Pair<Int, Int> {
         val isCompound = exerciseType == "Compuesto"
         
-        return when (goal) {
-            FitnessGoal.STRENGTH -> {
-                // Baja rep, alta intensidad
-                if (isCompound) Pair(5, 5) else Pair(3, 8)
-            }
-            FitnessGoal.MUSCLE_GAIN -> {
-                // Volumen moderado-alto
-                when (level) {
-                    FitnessLevel.BEGINNER -> Pair(3, 12)
-                    FitnessLevel.INTERMEDIATE -> if (isCompound) Pair(4, 8) else Pair(3, 12)
-                    FitnessLevel.ADVANCED -> if (isCompound) Pair(5, 8) else Pair(4, 12)
-                }
-            }
-            FitnessGoal.WEIGHT_LOSS, FitnessGoal.ENDURANCE -> {
-                // Alto rep, circuito
-                Pair(3, 15)
-            }
-            else -> {
-                // General fitness
-                Pair(3, 10)
-            }
-        }
+        // Usar el analizador inteligente para recomendaciones científicas
+        val volumeRec = smartAnalyzer.calculateOptimalVolume(
+            goal = goal,
+            level = level,
+            isCompound = isCompound,
+            weekNumber = 1 // Podrías implementar periodización aquí
+        )
+        
+        // Devolver el punto medio del rango de reps
+        val avgReps = (volumeRec.repsMin + volumeRec.repsMax) / 2
+        return Pair(volumeRec.sets, avgReps)
     }
     
     /**
-     * Calcula tiempo de descanso óptimo
+     * Calcula tiempo de descanso óptimo usando IA
      */
-    private fun calculateRestTime(goal: FitnessGoal, exerciseType: String): Int {
+    private fun calculateRestTime(goal: FitnessGoal, exerciseType: String, level: FitnessLevel): Int {
         val isCompound = exerciseType == "Compuesto"
         
-        return when (goal) {
-            FitnessGoal.STRENGTH -> if (isCompound) 180 else 120 // 2-3 min
-            FitnessGoal.MUSCLE_GAIN -> if (isCompound) 90 else 60 // 60-90 seg
-            FitnessGoal.WEIGHT_LOSS, FitnessGoal.ENDURANCE -> 45 // 45 seg
-            else -> 60 // 1 min
-        }
+        // Usar el analizador inteligente
+        val volumeRec = smartAnalyzer.calculateOptimalVolume(
+            goal = goal,
+            level = level,
+            isCompound = isCompound
+        )
+        
+        return volumeRec.rest
     }
     
     // Funciones de ayuda

@@ -105,6 +105,17 @@ dependencies {
 
     // Gson for JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Retrofit & OkHttp for API calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    
+    // WorkManager for background sync
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

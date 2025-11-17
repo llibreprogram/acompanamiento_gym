@@ -6,12 +6,14 @@ import com.gymcompanion.app.data.repository.RoutineRepositoryImpl
 import com.gymcompanion.app.data.repository.UserRepositoryImpl
 import com.gymcompanion.app.data.repository.WorkoutSessionRepositoryImpl
 import com.gymcompanion.app.data.repository.UserPreferencesRepositoryImpl
+import com.gymcompanion.app.data.repository.ExerciseDBRepositoryImpl
 import com.gymcompanion.app.domain.repository.BodyMetricsRepository
 import com.gymcompanion.app.domain.repository.ExerciseRepository
 import com.gymcompanion.app.domain.repository.RoutineRepository
 import com.gymcompanion.app.domain.repository.UserRepository
 import com.gymcompanion.app.domain.repository.WorkoutSessionRepository
 import com.gymcompanion.app.domain.repository.UserPreferencesRepository
+import com.gymcompanion.app.domain.repository.ExerciseDBRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -60,4 +62,10 @@ abstract class RepositoryModule {
     abstract fun bindUserPreferencesRepository(
         userPreferencesRepositoryImpl: UserPreferencesRepositoryImpl
     ): UserPreferencesRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindExerciseDBRepository(
+        exerciseDBRepositoryImpl: ExerciseDBRepositoryImpl
+    ): ExerciseDBRepository
 }
