@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Instalar APK de debug",
+			"type": "shell",
+			"command": "./gradlew installDebug"
+		},
+		{
+			"label": "Compilar app",
+			"type": "shell",
+			"command": "./gradlew assembleDebug",
+			"isBackground": false,
+			"problemMatcher": [
+				"$javac"
+			],
+			"group": "build"
+		}
+	]
+}

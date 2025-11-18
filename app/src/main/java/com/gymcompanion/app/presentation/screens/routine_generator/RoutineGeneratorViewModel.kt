@@ -1,5 +1,6 @@
 package com.gymcompanion.app.presentation.screens.routine_generator
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gymcompanion.app.domain.model.*
@@ -65,6 +66,8 @@ class RoutineGeneratorViewModel @Inject constructor(
             _uiState.value = state.copy(isGenerating = true, error = null)
             
             try {
+                // Obtener datos del perfil (simulado, reemplazar por acceso real al ProfileViewModel)
+                val userProfile = getUserProfile()
                 val request = RoutineGenerationRequest(
                     goal = state.selectedGoal,
                     level = state.selectedLevel,
@@ -72,8 +75,17 @@ class RoutineGeneratorViewModel @Inject constructor(
                     sessionDuration = state.sessionDuration,
                     equipment = state.selectedEquipment,
                     consecutiveDays = state.consecutiveDays,
-                    physicalLimitations = state.physicalLimitations
+                    physicalLimitations = state.physicalLimitations,
+                    age = userProfile.age,
+                    gender = userProfile.gender,
+                    weight = userProfile.weight,
+                    height = userProfile.height,
+                    experienceLevel = userProfile.experienceLevel,
+                    preferences = userProfile.preferences,
+                    restrictions = userProfile.restrictions
                 )
+                
+                Log.d("RoutineGeneratorViewModel", "Generando rutina con perfil: age=${userProfile.age}, gender=${userProfile.gender}, weight=${userProfile.weight}, height=${userProfile.height}, experienceLevel=${userProfile.experienceLevel}, preferences=${userProfile.preferences}, restrictions=${userProfile.restrictions}")
                 
                 val generatedRoutines = routineGeneratorUseCase.generateRoutine(request, userId = 1L)
                 
@@ -94,6 +106,30 @@ class RoutineGeneratorViewModel @Inject constructor(
     fun resetWizard() {
         _uiState.value = RoutineGeneratorUiState()
     }
+
+    // Simulación de obtención de perfil de usuario
+    private fun getUserProfile(): UserProfileData {
+        // TODO: Reemplazar con acceso real a ProfileViewModel o repositorio
+        return UserProfileData(
+            age = 25,
+            gender = "male",
+            weight = 75f,
+            height = 175f,
+            experienceLevel = "intermediate",
+            preferences = "hipertrofia",
+            restrictions = null
+        )
+    }
+
+    data class UserProfileData(
+        val age: Int?,
+        val gender: String?,
+        val weight: Float?,
+        val height: Float?,
+        val experienceLevel: String?,
+        val preferences: String?,
+        val restrictions: String?
+    )
 }
 
 data class RoutineGeneratorUiState(

@@ -23,9 +23,11 @@ class ExerciseSyncViewModel @Inject constructor(
     val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
     
     init {
+        android.util.Log.d("ExerciseSyncViewModel", "ViewModel initialized")
         // Observar el estado general de sincronización
         viewModelScope.launch {
             syncManager.observeGeneralSyncState().collect { state ->
+                android.util.Log.d("ExerciseSyncViewModel", "General sync state changed: $state")
                 _syncState.value = state
             }
         }
@@ -35,8 +37,11 @@ class ExerciseSyncViewModel @Inject constructor(
      * Inicia sincronización manual
      */
     fun syncExercises() {
+        android.util.Log.d("ExerciseSyncViewModel", "syncExercises() called")
         viewModelScope.launch {
+            android.util.Log.d("ExerciseSyncViewModel", "Launching syncNow() coroutine")
             syncManager.syncNow().collect { state ->
+                android.util.Log.d("ExerciseSyncViewModel", "Received sync state: $state")
                 _syncState.value = state
             }
         }
@@ -46,6 +51,7 @@ class ExerciseSyncViewModel @Inject constructor(
      * Cancela la sincronización en curso
      */
     fun cancelSync() {
+        android.util.Log.d("ExerciseSyncViewModel", "cancelSync() called")
         syncManager.cancelAllSync()
         _syncState.value = SyncState.Cancelled
     }

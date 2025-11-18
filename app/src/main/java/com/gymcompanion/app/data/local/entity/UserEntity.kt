@@ -16,7 +16,13 @@ data class UserEntity(
     val dateOfBirth: Long, // Timestamp para calcular edad dinámica
     val gender: String, // "male", "female", "other"
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val weight: Float? = null, // Peso en kg
+    val height: Float? = null, // Altura en cm
+    val experienceLevel: String? = null, // "beginner", "intermediate", "advanced"
+    val goal: String? = null, // "muscle_gain", "fat_loss", "maintenance", etc.
+    val restrictions: String? = null, // Lesiones, condiciones médicas, etc.
+    val preferences: String? = null // Preferencias de entrenamiento, tipo de rutina, etc.
 ) {
     /**
      * Calcula la edad actual del usuario basándose en la fecha de nacimiento

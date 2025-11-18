@@ -22,9 +22,18 @@ class GymCompanionApplication : Application(), Configuration.Provider {
     
     override fun onCreate() {
         super.onCreate()
+        android.util.Log.d("GymCompanionApplication", "onCreate() called")
         
         // Programar sincronización periódica de ejercicios
         exerciseSyncManager.schedulePeriodicSync()
+        android.util.Log.d("GymCompanionApplication", "Periodic sync scheduled")
+        
+        // TEMPORAL: Activar sincronización inmediata para pruebas
+        // TODO: Remover después de las pruebas
+        android.os.Handler(mainLooper).postDelayed({
+            android.util.Log.d("GymCompanionApplication", "Starting immediate sync")
+            exerciseSyncManager.syncNow()
+        }, 2000) // Esperar 2 segundos para que la app se inicialice
     }
     
     override val workManagerConfiguration: Configuration

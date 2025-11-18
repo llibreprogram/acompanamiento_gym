@@ -1,5 +1,6 @@
 package com.gymcompanion.app.domain.usecase
 
+import android.util.Log
 import com.gymcompanion.app.data.local.entity.ExerciseEntity
 import com.gymcompanion.app.data.local.entity.RoutineEntity
 import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
@@ -31,11 +32,30 @@ class RoutineGeneratorUseCase @Inject constructor(
     suspend fun generateRoutine(request: RoutineGenerationRequest, userId: Long): List<RoutineEntity> {
         val allExercises = exerciseRepository.getAllExercises().first()
         
+        // --- Personalización avanzada usando datos de perfil ---
+        // Filtrar ejercicios según restricciones, preferencias, nivel, edad, género, peso, altura, etc.
+        val filteredExercises = allExercises.filter { exercise ->
+            // Ejemplo de lógica avanzada:
+            // 1. Filtrar por nivel de experiencia
+            val experienceMatch = request.experienceLevel == null || exercise.difficulty == request.experienceLevel
+            // 2. Filtrar por género si aplica
+            val genderMatch = request.gender == null || exercise.suitableForGender == null || exercise.suitableForGender == "all" || exercise.suitableForGender == request.gender
+            // 3. Filtrar por restricciones médicas
+            val restrictionMatch = request.restrictions == null || !exercise.name.contains(request.restrictions, ignoreCase = true)
+            // 4. Filtrar por preferencias
+            val preferenceMatch = request.preferences == null || (exercise.tags?.split(",")?.map { it.trim() }?.contains(request.preferences) == true)
+            // 5. Filtrar por edad, peso, altura si aplica (puedes agregar lógica específica)
+            experienceMatch && genderMatch && restrictionMatch && preferenceMatch
+        }
+
+        Log.d("RoutineGeneratorUseCase", "Ejercicios filtrados: ${filteredExercises.size} de ${allExercises.size} para perfil: age=${request.age}, gender=${request.gender}, weight=${request.weight}, height=${request.height}, experienceLevel=${request.experienceLevel}, preferences=${request.preferences}, restrictions=${request.restrictions}")
+
+        // Usar filteredExercises en vez de allExercises para la generación
         return when (request.daysPerWeek) {
-            3 -> generateFullBodySplit(request, userId, allExercises)
-            4 -> generateUpperLowerSplit(request, userId, allExercises)
-            5, 6 -> generatePushPullLegsSplit(request, userId, allExercises)
-            else -> generateFullBodySplit(request, userId, allExercises)
+            3 -> generateFullBodySplit(request, userId, filteredExercises)
+            4 -> generateUpperLowerSplit(request, userId, filteredExercises)
+            5, 6 -> generatePushPullLegsSplit(request, userId, filteredExercises)
+            else -> generateFullBodySplit(request, userId, filteredExercises)
         }
     }
     
@@ -54,7 +74,8 @@ class RoutineGeneratorUseCase @Inject constructor(
             listOf("Lunes", "Miércoles", "Viernes")
         }
         val routines = mutableListOf<RoutineEntity>()
-        
+        val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+
         days.forEachIndexed { index, day ->
             val routineName = when (request.goal) {
                 FitnessGoal.WEIGHT_LOSS -> "Cuerpo Completo - Pérdida de Peso $day"
@@ -62,8 +83,8 @@ class RoutineGeneratorUseCase @Inject constructor(
                 FitnessGoal.STRENGTH -> "Cuerpo Completo - Fuerza $day"
                 else -> "Cuerpo Completo $day"
             }
-            
-            val selectedExercises = selectBalancedExercises(
+
+            var selectedExercises = selectBalancedExercises(
                 exercises = exercises,
                 equipmentFilter = request.equipment,
                 targetCount = 6, // 6 ejercicios por sesión
@@ -71,7 +92,15 @@ class RoutineGeneratorUseCase @Inject constructor(
                 goal = request.goal,
                 level = request.level
             )
-            
+
+            // Evitar ejercicios repetidos en toda la semana
+            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+
+            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
+            if (selectedExercises.size < 6) {
+                selectedExercises = exercises.filterNot { globalUsedExercises.contains(it.id) }.take(6)
+            }
+
             val routineId = createRoutineWithExercises(
                 userId = userId,
                 name = routineName,
@@ -80,7 +109,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                 level = request.level,
                 duration = request.sessionDuration
             )
-            
+
             routines.add(RoutineEntity(
                 id = routineId,
                 userId = userId,
@@ -94,8 +123,10 @@ class RoutineGeneratorUseCase @Inject constructor(
                 difficulty = request.level.toSpanish(),
                 createdAt = System.currentTimeMillis()
             ))
+
+            globalUsedExercises.addAll(selectedExercises.map { it.id })
         }
-        
+
         return routines
     }
     
@@ -125,38 +156,49 @@ class RoutineGeneratorUseCase @Inject constructor(
         val splits = listOf("Push", "Pull", "Legs", "Push", "Pull", "Legs").take(request.daysPerWeek)
         val routines = mutableListOf<RoutineEntity>()
         
-        days.zip(splits).forEach { (day, split) ->
+    var previousMuscleGroups: List<String> = emptyList()
+    var previousExercises: Set<Long> = emptySet()
+    val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+    days.zip(splits).forEach { (day, split) ->
             val muscleGroups = when (split) {
                 "Push" -> listOf("Pecho", "Hombros", "Tríceps")
                 "Pull" -> listOf("Espalda", "Bíceps")
                 "Legs" -> listOf("Piernas", "Core")
                 else -> emptyList()
             }
-            
+
+            // Evitar repetir el mismo grupo muscular principal del día anterior
+            val filteredMuscleGroups = muscleGroups.filterNot { previousMuscleGroups.contains(it) }
+            val effectiveMuscleGroups = if (filteredMuscleGroups.isNotEmpty()) filteredMuscleGroups else muscleGroups
+
             // Filter by muscle group
             var muscleFiltered = exercises.filter { ex ->
-                muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
+                effectiveMuscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
             }
-            
+
             // Filter by equipment - using helper function to avoid compiler issues
             var selectedExercises = filterByEquipment(muscleFiltered, request.equipment)
-            
+
             // Filter by physical limitations
             selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
-            
+
+            // Evitar ejercicios repetidos en toda la semana
+            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+
             // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
             if (selectedExercises.size < 5) {
                 selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
+                selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
             }
             if (selectedExercises.size < 3) {
                 selectedExercises = filterByPhysicalLimitations(
-                    filterByEquipment(exercises, request.equipment), 
+                    filterByEquipment(exercises, request.equipment),
                     request.physicalLimitations
-                )
+                ).filterNot { globalUsedExercises.contains(it.id) }
             }
-            
+
             selectedExercises = selectedExercises.take(7)
-            
+
             val routineId = createRoutineWithExercises(
                 userId = userId,
                 name = "$split - $day",
@@ -165,22 +207,26 @@ class RoutineGeneratorUseCase @Inject constructor(
                 level = request.level,
                 duration = request.sessionDuration
             )
-            
+
             routines.add(RoutineEntity(
                 id = routineId,
                 userId = userId,
                 name = "$split - $day",
-                description = "Enfoque en ${muscleGroups.joinToString(", ")}",
+                description = "Enfoque en ${effectiveMuscleGroups.joinToString(", ")}",
                 daysOfWeek = "[\"$day\"]",
                 isActive = true,
                 isAIGenerated = true,
                 duration = request.sessionDuration,
-                focusArea = muscleGroups.firstOrNull() ?: split,
+                focusArea = effectiveMuscleGroups.firstOrNull() ?: split,
                 difficulty = request.level.toSpanish(),
                 createdAt = System.currentTimeMillis()
             ))
+
+            previousMuscleGroups = muscleGroups
+            previousExercises = selectedExercises.map { it.id }.toSet()
+            globalUsedExercises.addAll(selectedExercises.map { it.id })
         }
-        
+
         return routines
     }
     
@@ -196,37 +242,48 @@ class RoutineGeneratorUseCase @Inject constructor(
         val splits = listOf("Superior", "Inferior", "Superior", "Inferior")
         val routines = mutableListOf<RoutineEntity>()
         
-        days.zip(splits).forEach { (day, split) ->
+    var previousMuscleGroups: List<String> = emptyList()
+    var previousExercises: Set<Long> = emptySet()
+    val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+    days.zip(splits).forEach { (day, split) ->
             val muscleGroups = if (split == "Superior") {
                 listOf("Pecho", "Espalda", "Hombros", "Brazos")
             } else {
                 listOf("Piernas", "Core")
             }
-            
+
+            // Evitar repetir el mismo grupo muscular principal del día anterior
+            val filteredMuscleGroups = muscleGroups.filterNot { previousMuscleGroups.contains(it) }
+            val effectiveMuscleGroups = if (filteredMuscleGroups.isNotEmpty()) filteredMuscleGroups else muscleGroups
+
             // Filter by muscle group
             var muscleFiltered = exercises.filter { ex ->
-                muscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
+                effectiveMuscleGroups.any { muscle -> ex.muscleGroup.contains(muscle, ignoreCase = true) }
             }
-            
+
             // Filter by equipment - using helper function to avoid compiler issues
             var selectedExercises = filterByEquipment(muscleFiltered, request.equipment)
-            
+
             // Filter by physical limitations
             selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
-            
+
+            // Evitar ejercicios repetidos en toda la semana
+            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+
             // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
             if (selectedExercises.size < 5) {
                 selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
+                selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
             }
             if (selectedExercises.size < 3) {
                 selectedExercises = filterByPhysicalLimitations(
                     filterByEquipment(exercises, request.equipment),
                     request.physicalLimitations
-                )
+                ).filterNot { globalUsedExercises.contains(it.id) }
             }
-            
+
             selectedExercises = selectedExercises.take(7)
-            
+
             val routineId = createRoutineWithExercises(
                 userId = userId,
                 name = "Tren $split - $day",
@@ -235,7 +292,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                 level = request.level,
                 duration = request.sessionDuration
             )
-            
+
             routines.add(RoutineEntity(
                 id = routineId,
                 userId = userId,
@@ -249,8 +306,12 @@ class RoutineGeneratorUseCase @Inject constructor(
                 difficulty = request.level.toSpanish(),
                 createdAt = System.currentTimeMillis()
             ))
+
+            previousMuscleGroups = muscleGroups
+            previousExercises = selectedExercises.map { it.id }.toSet()
+            globalUsedExercises.addAll(selectedExercises.map { it.id })
         }
-        
+
         return routines
     }
     

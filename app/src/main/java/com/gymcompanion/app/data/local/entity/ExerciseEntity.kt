@@ -39,7 +39,12 @@ data class ExerciseEntity(
     
     // Metadata
     val isCustom: Boolean = false, // true si fue creado por el usuario
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    
+    // Género recomendado (opcional, para personalización futura)
+    val suitableForGender: String? = null, // "male", "female", "all"
+    // Etiquetas para preferencias (opcional, para IA)
+    val tags: String? = null // Lista separada por comas: "hipertrofia,cardio,funcional"
 )
 
 /**

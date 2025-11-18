@@ -12,7 +12,14 @@ data class RoutineGenerationRequest(
     val consecutiveDays: Boolean = false, // ¿Entrenar días consecutivos?
     val physicalLimitations: List<PhysicalLimitation> = emptyList(), // Limitaciones físicas
     val focusAreas: List<String> = emptyList(), // Áreas específicas a trabajar
-    val injuries: List<String> = emptyList() // Lesiones o limitaciones (deprecated, usar physicalLimitations)
+    val injuries: List<String> = emptyList(), // Lesiones o limitaciones (deprecated, usar physicalLimitations)
+    val age: Int? = null, // Edad calculada
+    val gender: String? = null, // "male", "female", "other"
+    val weight: Float? = null, // Peso en kg
+    val height: Float? = null, // Altura en cm
+    val experienceLevel: String? = null, // "beginner", "intermediate", "advanced"
+    val preferences: String? = null, // Preferencias de entrenamiento, tipo de rutina
+    val restrictions: String? = null // Restricciones médicas, lesiones, etc.
 )
 
 /**
