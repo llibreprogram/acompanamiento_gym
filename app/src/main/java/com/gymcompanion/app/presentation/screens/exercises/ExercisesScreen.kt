@@ -32,16 +32,79 @@ fun ExercisesScreen(
     viewModel: ExercisesViewModel = hiltViewModel(),
     onExerciseClick: (Long) -> Unit = {}
 ) {
+    // Sincronizar automáticamente al abrir la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.syncExercises()
+    }
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedMuscleGroup by viewModel.selectedMuscleGroup.collectAsState()
     val selectedDifficulty by viewModel.selectedDifficulty.collectAsState()
     val filteredExercises by viewModel.filteredExercises.collectAsState()
     val muscleGroups by viewModel.muscleGroups.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val syncStatus by viewModel.syncStatus.collectAsState()
     
     Scaffold(
         topBar = {
             Column {
+                // Banner de progreso de sincronización
+                when (syncStatus) {
+                    is com.gymcompanion.app.domain.repository.SyncStatus.InProgress -> {
+                        val progress = (syncStatus as com.gymcompanion.app.domain.repository.SyncStatus.InProgress).progress
+                        val total = (syncStatus as com.gymcompanion.app.domain.repository.SyncStatus.InProgress).total
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Sincronizando ejercicios: $progress / $total", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            LinearProgressIndicator(
+                                progress = if (total > 0) progress / total.toFloat() else 0f,
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                            )
+                        }
+                    }
+                    is com.gymcompanion.app.domain.repository.SyncStatus.Success -> {
+                        val synced = (syncStatus as com.gymcompanion.app.domain.repository.SyncStatus.Success).exercisesSynced
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Sincronización completada: $synced ejercicios", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        }
+                    }
+                    is com.gymcompanion.app.domain.repository.SyncStatus.Error -> {
+                        val msg = (syncStatus as com.gymcompanion.app.domain.repository.SyncStatus.Error).message
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Error en sincronización: $msg", color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
+                    else -> {
+                        // Botón para iniciar sincronización manual
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Button(onClick = { viewModel.syncExercises() }) {
+                                Text("Sincronizar ejercicios")
+                            }
+                        }
+                    }
+                }
                 TopAppBar(
                     title = { 
                         Text(
@@ -156,7 +219,7 @@ fun ExercisesScreen(
             }
         }
     ) { paddingValues ->
-        when (uiState) {
+    when (uiState) {
             is ExercisesUiState.Loading -> {
                 Box(
                     modifier = Modifier

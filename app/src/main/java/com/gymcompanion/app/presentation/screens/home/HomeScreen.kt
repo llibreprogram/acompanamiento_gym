@@ -238,6 +238,88 @@ fun HomeScreen(
                     )
                 }
             }
+            
+            // Motivational tip card
+            item {
+                MotivationCard(
+                    tip = "La consistencia vence al talento cuando el talento no es consistente.",
+                    author = "Anónimo",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // Weekly progress chart
+            item {
+                ModernCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    elevation = 3.dp
+                ) {
+                    WeeklyProgressChart(
+                        weeklyData = listOf(
+                            "Lun" to 85f,
+                            "Mar" to 92f,
+                            "Mié" to 78f,
+                            "Jue" to 95f,
+                            "Vie" to 88f,
+                            "Sáb" to 0f,
+                            "Dom" to 0f
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // Achievements section
+            item {
+                Text(
+                    text = "🏆 Logros",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AchievementCard(
+                        title = "Primera Semana",
+                        description = "Completaste tu primera semana de entrenamientos",
+                        icon = Icons.Default.EmojiEvents,
+                        achieved = weeklyStats.totalWorkouts >= 3,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    AchievementCard(
+                        title = "Racha de 5 Días",
+                        description = "Entrenaste 5 días seguidos",
+                        icon = Icons.Default.LocalFireDepartment,
+                        achieved = weeklyStats.totalWorkouts >= 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    AchievementCard(
+                        title = "Volumen Total",
+                        description = "Levantaste más de 10,000 kg esta semana",
+                        icon = Icons.Default.TrendingUp,
+                        achieved = weeklyStats.totalVolume >= 10000,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // Workout streak calendar
+            item {
+                ModernCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    elevation = 3.dp
+                ) {
+                    WorkoutStreakCalendar(
+                        streakDays = listOf(true, true, false, true, true, false, false),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }

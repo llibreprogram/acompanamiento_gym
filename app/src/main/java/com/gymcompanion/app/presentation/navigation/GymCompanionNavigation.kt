@@ -1,13 +1,23 @@
 package com.gymcompanion.app.presentation.navigation
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -133,27 +143,60 @@ fun GymCompanionNavigation() {
 }
 
 /**
- * Barra de navegación inferior
+ * Barra de navegación inferior moderna con animaciones
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    
+
     val items = listOf(
-        BottomNavItem("Inicio", Screen.Home.route, Icons.Filled.Home),
-        BottomNavItem("Rutinas", Screen.Routines.route, Icons.Filled.FitnessCenter),
-        BottomNavItem("Ejercicios", Screen.Exercises.route, Icons.Filled.List),
-        BottomNavItem("Progreso", Screen.Progress.route, Icons.Filled.TrendingUp),
-        BottomNavItem("Perfil", Screen.Profile.route, Icons.Filled.Person)
+        BottomNavItem("Inicio", Screen.Home.route, Icons.Filled.Home, Icons.Filled.Home),
+        BottomNavItem("Rutinas", Screen.Routines.route, Icons.Filled.FitnessCenter, Icons.Filled.FitnessCenter),
+        BottomNavItem("Ejercicios", Screen.Exercises.route, Icons.Filled.List, Icons.Filled.List),
+        BottomNavItem("Progreso", Screen.Progress.route, Icons.Filled.TrendingUp, Icons.Filled.TrendingUp),
+        BottomNavItem("Perfil", Screen.Profile.route, Icons.Filled.Person, Icons.Filled.Person)
     )
-    
-    NavigationBar {
-        items.forEach { item ->
+
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 8.dp
+    ) {
+        items.forEachIndexed { index, item ->
+            val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+
+            val scale by animateFloatAsState(
+                targetValue = if (selected) 1.1f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "nav_item_scale_$index"
+            )
+
             NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.title) },
-                label = { Text(item.title) },
-                selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                icon = {
+                    Box(
+                        modifier = Modifier.scale(scale),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (selected) item.selectedIcon else item.icon,
+                            contentDescription = item.title,
+                            modifier = Modifier.size(if (selected) 28.dp else 24.dp)
+                        )
+                    }
+                },
+                label = {
+                    Text(
+                        item.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                selected = selected,
                 onClick = {
                     navController.navigate(item.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
@@ -162,7 +205,14 @@ fun BottomNavigationBar(navController: NavHostController) {
                         launchSingleTop = true
                         restoreState = true
                     }
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                )
             )
         }
     }
@@ -171,5 +221,6 @@ fun BottomNavigationBar(navController: NavHostController) {
 data class BottomNavItem(
     val title: String,
     val route: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val selectedIcon: ImageVector = icon
 )

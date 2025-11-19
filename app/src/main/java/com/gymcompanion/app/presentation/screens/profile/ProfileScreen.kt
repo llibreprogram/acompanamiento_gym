@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.gymcompanion.app.presentation.components.GoalsSection
+import com.gymcompanion.app.presentation.components.ProfileHeader
 
 /**
  * Pantalla de perfil del usuario
@@ -60,9 +62,28 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // Profile header with avatar and stats
+            ProfileHeader(
+                userName = currentUser?.name,
+                userAge = currentUser?.calculateAge(),
+                userGender = currentUser?.gender,
+                workoutCount = 24, // TODO: Get from viewModel
+                totalVolume = 12500L, // TODO: Get from viewModel
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Goals section
+            GoalsSection(
+                currentGoal = currentUser?.goal,
+                targetWeight = null, // TODO: Add target weight to user profile
+                currentWeight = latestMetrics?.weight?.toFloat(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
             // User info card
             Card(
                 modifier = Modifier.fillMaxWidth(),

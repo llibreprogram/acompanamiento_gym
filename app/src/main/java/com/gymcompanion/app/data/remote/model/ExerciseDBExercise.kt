@@ -53,19 +53,3 @@ data class ExerciseDBExercise(
     val relatedExerciseIds: List<String>?
 )
 
-/**
- * Respuesta paginada de la API
- */
-data class ExerciseDBResponse(
-    @SerializedName("exercises")
-    val exercises: List<ExerciseDBExercise>,
-    
-    @SerializedName("total")
-    val total: Int?,
-    
-    @SerializedName("page")
-    val page: Int?,
-    
-    @SerializedName("pageSize")
-    val pageSize: Int?
-)
