@@ -1,5 +1,6 @@
 
 package com.gymcompanion.app.data.remote.api
+
 import com.gymcompanion.app.data.remote.model.ExerciseDBExercise
 import retrofit2.Response
 import retrofit2.http.GET
@@ -9,15 +10,15 @@ import retrofit2.http.Query
 /**
  * API Service para ExerciseDB
  * Documentación: https://docs.exercisedb.dev
+ */
+interface ExerciseDBApiService {
+
     /**
      * Obtener todos los ejercicios (sin paginación)
      */
     @GET("exercises")
     suspend fun getAllExercises(): Response<List<ExerciseDBExercise>>
-     */
-    @GET("exercises")
-    suspend fun getAllExercises(): Response<List<ExerciseDBExercise>>
-    
+
     /**
      * Obtener un ejercicio por ID
      */
@@ -25,7 +26,7 @@ import retrofit2.http.Query
     suspend fun getExerciseById(
         @Path("id") exerciseId: String
     ): Response<ExerciseDBExercise>
-    
+
     /**
      * Buscar ejercicios por nombre
      */
@@ -35,7 +36,7 @@ import retrofit2.http.Query
         @Query("page") page: Int = 1,
         @Query("pageSize") pageSize: Int = 50
     ): Response<List<ExerciseDBExercise>>
-    
+
     /**
      * Filtrar ejercicios por parte del cuerpo
      */
@@ -45,7 +46,7 @@ import retrofit2.http.Query
         @Query("page") page: Int = 1,
         @Query("pageSize") pageSize: Int = 50
     ): Response<List<ExerciseDBExercise>>
-    
+
     /**
      * Filtrar ejercicios por equipamiento
      */
@@ -55,7 +56,7 @@ import retrofit2.http.Query
         @Query("page") page: Int = 1,
         @Query("pageSize") pageSize: Int = 50
     ): Response<List<ExerciseDBExercise>>
-    
+
     /**
      * Filtrar ejercicios por músculo objetivo
      */

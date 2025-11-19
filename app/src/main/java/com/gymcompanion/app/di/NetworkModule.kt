@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -21,10 +22,9 @@ import javax.inject.Singleton
 object NetworkModule {
     
     /**
-     * Base URL para ExerciseDB API
-     * Para producción, considera usar tu propia instancia o API key
+     * Base URL para ExerciseDB API (RapidAPI)
      */
-    private const val EXERCISE_DB_BASE_URL = "https://api.exercisedb.dev/api/v2/"
+    private const val EXERCISE_DB_BASE_URL = "https://exercisedb-api-v1-dataset1.p.rapidapi.com/api/v1/"
     
     @Qualifier
     @Retention(AnnotationRetention.BINARY)
@@ -39,8 +39,18 @@ object NetworkModule {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
-        
+
+        // Interceptor para headers de RapidAPI
+        val rapidApiInterceptor = okhttp3.Interceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("X-RapidAPI-Key", "c3b499a878mshc79e4d31000b3bbp160079jsn34e8c9720a8b")
+                .addHeader("X-RapidAPI-Host", "exercisedb-api-v1-dataset1.p.rapidapi.com")
+                .build()
+            chain.proceed(request)
+        }
+
         return OkHttpClient.Builder()
+            .addInterceptor(rapidApiInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
