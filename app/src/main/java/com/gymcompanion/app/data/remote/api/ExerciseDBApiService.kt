@@ -1,7 +1,5 @@
 
 package com.gymcompanion.app.data.remote.api
-import com.gymcompanion.app.data.remote.model.ExerciseDBResponse
-
 import com.gymcompanion.app.data.remote.model.ExerciseDBExercise
 import retrofit2.Response
 import retrofit2.http.GET
@@ -11,14 +9,11 @@ import retrofit2.http.Query
 /**
  * API Service para ExerciseDB
  * Documentación: https://docs.exercisedb.dev
- * 
- * Nota: Esta es la configuración para la API pública.
- * Para producción, considera usar tu propia API key.
- */
-interface ExerciseDBApiService {
-    
     /**
      * Obtener todos los ejercicios (sin paginación)
+     */
+    @GET("exercises")
+    suspend fun getAllExercises(): Response<List<ExerciseDBExercise>>
      */
     @GET("exercises")
     suspend fun getAllExercises(): Response<List<ExerciseDBExercise>>
