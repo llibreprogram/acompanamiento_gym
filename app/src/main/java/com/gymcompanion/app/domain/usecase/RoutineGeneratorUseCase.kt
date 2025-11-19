@@ -37,7 +37,7 @@ class RoutineGeneratorUseCase @Inject constructor(
         val filteredExercises = allExercises.filter { exercise ->
             // Ejemplo de lógica avanzada:
             // 1. Filtrar por nivel de experiencia
-            val experienceMatch = request.experienceLevel == null || exercise.difficulty == request.experienceLevel
+            val experienceMatch = request.experienceLevel == null || exercise.difficulty.equals(request.experienceLevel.name, ignoreCase = true)
             // 2. Filtrar por género si aplica
             val genderMatch = request.gender == null || exercise.suitableForGender == null || exercise.suitableForGender == "all" || exercise.suitableForGender == request.gender
             // 3. Filtrar por restricciones médicas
