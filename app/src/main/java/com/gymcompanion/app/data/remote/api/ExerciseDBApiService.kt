@@ -2,6 +2,7 @@
 package com.gymcompanion.app.data.remote.api
 
 import com.gymcompanion.app.data.remote.model.ExerciseDBExercise
+import com.gymcompanion.app.data.remote.model.ExerciseDBResponse
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -17,7 +18,7 @@ interface ExerciseDBApiService {
      * Obtener todos los ejercicios (sin paginación)
      */
     @GET("exercises")
-    suspend fun getAllExercises(): Response<List<ExerciseDBExercise>>
+    suspend fun getAllExercises(): Response<ExerciseDBResponse>
 
     /**
      * Obtener un ejercicio por ID

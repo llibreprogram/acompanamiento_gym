@@ -30,8 +30,12 @@ class ExerciseDBRepositoryImpl @Inject constructor(
         return try {
             val response = apiService.getAllExercises()
             if (response.isSuccessful) {
-                val exercises = response.body() ?: emptyList()
-                Result.success(exercises)
+                val exerciseResponse = response.body()
+                if (exerciseResponse?.success == true) {
+                    Result.success(exerciseResponse.data)
+                } else {
+                    Result.failure(Exception("API Error: Response not successful"))
+                }
             } else {
                 Result.failure(Exception("API Error: ${response.code()} - ${response.message()}"))
             }
