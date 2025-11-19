@@ -103,7 +103,7 @@ class ExerciseSyncWorker(
             android.util.Log.d("ExerciseSyncWorker", "Progress set to STARTING")
 
             // Realizar la sincronización
-            val result = repository.syncExercisesToLocal(10) // Sincronizar solo 10 ejercicios
+            val result = repository.syncExercisesToLocal(10000) // Sincronizar todos los ejercicios disponibles
             android.util.Log.d("ExerciseSyncWorker", "Repository sync completed with result: $result")
 
             result.fold(

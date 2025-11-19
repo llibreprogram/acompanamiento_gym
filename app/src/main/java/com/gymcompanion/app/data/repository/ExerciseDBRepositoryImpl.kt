@@ -59,7 +59,7 @@ class ExerciseDBRepositoryImpl @Inject constructor(
     }
     
     override suspend fun syncExercisesToLocal(): Result<Int> {
-        return syncExercisesToLocal(10) // Sincronizar solo 10 ejercicios por defecto
+        return syncExercisesToLocal(10000) // Sincronizar todos los ejercicios disponibles
     }
 
     override suspend fun syncExercisesToLocal(limit: Int): Result<Int> {
@@ -69,7 +69,7 @@ class ExerciseDBRepositoryImpl @Inject constructor(
             val result = fetchExercisesFromAPI(1, limit)
             result.fold(
                 onSuccess = { exercises ->
-                    val limitedExercises = exercises.take(limit)
+                    val limitedExercises = exercises.take(limit) // Toma hasta el límite especificado
                     val localExercises = ExerciseDBMapper.toExerciseEntities(limitedExercises)
                     exerciseDao.insertExercises(localExercises)
                     _syncStatus.value = SyncStatus.InProgress(localExercises.size, localExercises.size)
