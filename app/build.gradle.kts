@@ -39,6 +39,7 @@ android {
     
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += ["-Xallow-break-and-continue-in-inline-lambdas"]
     }
     
     buildFeatures {
