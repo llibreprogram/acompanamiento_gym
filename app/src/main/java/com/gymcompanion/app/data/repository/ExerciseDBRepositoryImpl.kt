@@ -26,13 +26,13 @@ class ExerciseDBRepositoryImpl @Inject constructor(
     
     override fun getSyncStatus(): Flow<SyncStatus> = _syncStatus.asStateFlow()
     
-    override suspend fun fetchExercisesFromAPI(page: Int, pageSize: Int): Result<List<ExerciseDBExercise>> {
+    override suspend fun fetchExercisesFromAPI(limit: Int, cursor: String?): Result<com.gymcompanion.app.data.remote.model.ExerciseDBResponse> {
         return try {
-            val response = apiService.getAllExercises()
+            val response = apiService.getAllExercises(limit, cursor)
             if (response.isSuccessful) {
                 val exerciseResponse = response.body()
                 if (exerciseResponse?.success == true) {
-                    Result.success(exerciseResponse.data)
+                    Result.success(exerciseResponse)
                 } else {
                     Result.failure(Exception("API Error: Response not successful"))
                 }
@@ -66,21 +66,35 @@ class ExerciseDBRepositoryImpl @Inject constructor(
         return try {
             _syncStatus.value = SyncStatus.InProgress(0, limit)
 
-            val result = fetchExercisesFromAPI(1, limit)
-            result.fold(
-                onSuccess = { exercises ->
-                    val limitedExercises = exercises.take(limit) // Toma hasta el límite especificado
-                    val localExercises = ExerciseDBMapper.toExerciseEntities(limitedExercises)
-                    exerciseDao.insertExercises(localExercises)
-                    _syncStatus.value = SyncStatus.InProgress(localExercises.size, localExercises.size)
-                    _syncStatus.value = SyncStatus.Success(localExercises.size)
-                    Result.success(localExercises.size)
-                },
-                onFailure = { exception ->
-                    _syncStatus.value = SyncStatus.Error(exception.message ?: "Error desconocido")
-                    Result.failure(exception)
-                }
-            )
+            val allExercises = mutableListOf<ExerciseDBExercise>()
+            var currentCursor: String? = null
+            val pageLimit = 100 // Tamaño de página fijo
+
+            while (allExercises.size < limit) {
+                val result = fetchExercisesFromAPI(pageLimit, currentCursor)
+                result.fold(
+                    onSuccess = { response ->
+                        val exercises = response.data
+                        if (exercises.isEmpty()) break // No más ejercicios
+
+                        allExercises.addAll(exercises)
+                        _syncStatus.value = SyncStatus.InProgress(allExercises.size.coerceAtMost(limit), limit)
+
+                        if (!response.meta.hasNextPage) break // No hay más páginas
+                        currentCursor = response.meta.nextCursor
+                    },
+                    onFailure = { exception ->
+                        _syncStatus.value = SyncStatus.Error(exception.message ?: "Error desconocido")
+                        return Result.failure(exception)
+                    }
+                )
+            }
+
+            val limitedExercises = allExercises.take(limit)
+            val localExercises = ExerciseDBMapper.toExerciseEntities(limitedExercises)
+            exerciseDao.insertExercises(localExercises)
+            _syncStatus.value = SyncStatus.Success(localExercises.size)
+            Result.success(localExercises.size)
         } catch (e: Exception) {
             _syncStatus.value = SyncStatus.Error(e.message ?: "Error en sincronización")
             Result.failure(e)

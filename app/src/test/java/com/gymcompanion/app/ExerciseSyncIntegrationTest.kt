@@ -2,8 +2,8 @@ package com.gymcompanion.app
 
 import com.gymcompanion.app.data.local.dao.ExerciseDao
 import com.gymcompanion.app.data.remote.api.ExerciseDBApiService
-import com.gymcompanion.app.data.remote.model.ExerciseDBExercise
-import retrofit2.Response
+import com.gymcompanion.app.data.remote.model.ExerciseDBResponse
+import com.gymcompanion.app.data.remote.model.MetaData
 import com.gymcompanion.app.data.repository.ExerciseDBRepositoryImpl
 import com.gymcompanion.app.domain.repository.ExerciseDBRepository
 import kotlinx.coroutines.runBlocking
@@ -92,9 +92,14 @@ class ExerciseSyncIntegrationTest {
             )
         )
 
+        val mockResponse1 = ExerciseDBResponse(
+            success = true,
+            meta = MetaData(total = 3, hasNextPage = false, hasPreviousPage = false, nextCursor = null),
+            data = mockExercises
+        )
+
         // Configurar mocks
-        whenever(apiService.getAllExercises(1, 100)).thenReturn(Response.success(mockExercises))
-        whenever(apiService.getAllExercises(2, 100)).thenReturn(Response.success(emptyList())) // No more pages
+        whenever(apiService.getAllExercises(100, null)).thenReturn(Response.success(mockResponse1))
 
         // Ejecutar sincronización
         val result = repository.syncExercisesToLocal()
@@ -126,9 +131,15 @@ class ExerciseSyncIntegrationTest {
 
     @Test
     fun testSyncWithEmptyResponse() = runBlocking {
+        val emptyResponse = ExerciseDBResponse(
+            success = true,
+            meta = MetaData(total = 0, hasNextPage = false, hasPreviousPage = false, nextCursor = null),
+            data = emptyList()
+        )
+
         // Configurar mock para devolver respuesta vacía
         whenever(apiService.getAllExercises(any(), any()))
-            .thenReturn(Response.success(emptyList()))
+            .thenReturn(Response.success(emptyResponse))
 
         // Ejecutar sincronización
         val result = repository.syncExercisesToLocal()

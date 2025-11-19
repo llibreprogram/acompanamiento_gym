@@ -15,10 +15,13 @@ import retrofit2.http.Query
 interface ExerciseDBApiService {
 
     /**
-     * Obtener todos los ejercicios (sin paginación)
+     * Obtener todos los ejercicios (con paginación cursor-based)
      */
     @GET("exercises")
-    suspend fun getAllExercises(): Response<ExerciseDBResponse>
+    suspend fun getAllExercises(
+        @Query("limit") limit: Int = 100,
+        @Query("cursor") cursor: String? = null
+    ): Response<ExerciseDBResponse>
 
     /**
      * Obtener un ejercicio por ID
