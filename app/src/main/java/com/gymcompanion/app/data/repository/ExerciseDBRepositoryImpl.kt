@@ -6,9 +6,7 @@ import com.gymcompanion.app.data.remote.mapper.ExerciseDBMapper
 import com.gymcompanion.app.data.remote.model.ExerciseDBExercise
 import com.gymcompanion.app.domain.repository.ExerciseDBRepository
 import com.gymcompanion.app.domain.repository.SyncStatus
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -94,6 +92,8 @@ class ExerciseDBRepositoryImpl @Inject constructor(
                         return Result.failure(exception)
                     }
                 )
+                // Delay to avoid rate limiting
+                delay(2000L)
             }
 
             val limitedExercises = allExercises.take(limit)
