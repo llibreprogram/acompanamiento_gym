@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface ExerciseDBRepository {
     
     /**
-     * Obtiene ejercicios desde la API (paginado cursor-based)
+     * Obtiene ejercicios desde la API (paginado offset-based)
      */
-    suspend fun fetchExercisesFromAPI(limit: Int = 100, cursor: String? = null): Result<com.gymcompanion.app.data.remote.model.ExerciseDBResponse>
+    suspend fun fetchExercisesFromAPI(limit: Int = 100, offset: Int = 0): Result<com.gymcompanion.app.data.remote.model.ExerciseDBResponse>
     
     /**
      * Busca ejercicios en la API

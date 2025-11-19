@@ -99,7 +99,7 @@ class ExerciseSyncIntegrationTest {
         )
 
         // Configurar mocks
-        whenever(apiService.getAllExercises(100, null)).thenReturn(Response.success(mockResponse1))
+        whenever(apiService.getAllExercises(100, 0)).thenReturn(Response.success(mockResponse1))
 
         // Ejecutar sincronización
         val result = repository.syncExercisesToLocal()

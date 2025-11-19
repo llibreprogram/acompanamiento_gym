@@ -26,9 +26,9 @@ class ExerciseDBRepositoryImpl @Inject constructor(
     
     override fun getSyncStatus(): Flow<SyncStatus> = _syncStatus.asStateFlow()
     
-    override suspend fun fetchExercisesFromAPI(limit: Int, cursor: String?): Result<com.gymcompanion.app.data.remote.model.ExerciseDBResponse> {
+    override suspend fun fetchExercisesFromAPI(limit: Int, offset: Int): Result<com.gymcompanion.app.data.remote.model.ExerciseDBResponse> {
         return try {
-            val response = apiService.getAllExercises(limit, cursor)
+            val response = apiService.getAllExercises(limit, offset)
             if (response.isSuccessful) {
                 val exerciseResponse = response.body()
                 if (exerciseResponse?.success == true) {
@@ -67,20 +67,21 @@ class ExerciseDBRepositoryImpl @Inject constructor(
             _syncStatus.value = SyncStatus.InProgress(0, limit)
 
             val allExercises = mutableListOf<ExerciseDBExercise>()
-            var currentCursor: String? = null
+            var offset = 0
             val pageLimit = 100 // Tamaño de página fijo
             var hasMore = true
 
             while (hasMore && allExercises.size < limit) {
-                val result = fetchExercisesFromAPI(pageLimit, currentCursor)
+                val result = fetchExercisesFromAPI(pageLimit, offset)
                 result.fold(
                     onSuccess = { response ->
                         val exercises = response.data
                         if (exercises.isNotEmpty()) {
                             allExercises.addAll(exercises)
                             _syncStatus.value = SyncStatus.InProgress(allExercises.size.coerceAtMost(limit), limit)
+                            offset += exercises.size
                             if (response.meta.hasNextPage) {
-                                currentCursor = response.meta.nextCursor
+                                // continue
                             } else {
                                 hasMore = false
                             }
