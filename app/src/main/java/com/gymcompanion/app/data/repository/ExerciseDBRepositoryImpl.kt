@@ -69,19 +69,24 @@ class ExerciseDBRepositoryImpl @Inject constructor(
             val allExercises = mutableListOf<ExerciseDBExercise>()
             var currentCursor: String? = null
             val pageLimit = 100 // Tamaño de página fijo
+            var hasMore = true
 
-            while (allExercises.size < limit) {
+            while (hasMore && allExercises.size < limit) {
                 val result = fetchExercisesFromAPI(pageLimit, currentCursor)
                 result.fold(
                     onSuccess = { response ->
                         val exercises = response.data
-                        if (exercises.isEmpty()) break // No más ejercicios
-
-                        allExercises.addAll(exercises)
-                        _syncStatus.value = SyncStatus.InProgress(allExercises.size.coerceAtMost(limit), limit)
-
-                        if (!response.meta.hasNextPage) break // No hay más páginas
-                        currentCursor = response.meta.nextCursor
+                        if (exercises.isNotEmpty()) {
+                            allExercises.addAll(exercises)
+                            _syncStatus.value = SyncStatus.InProgress(allExercises.size.coerceAtMost(limit), limit)
+                            if (response.meta.hasNextPage) {
+                                currentCursor = response.meta.nextCursor
+                            } else {
+                                hasMore = false
+                            }
+                        } else {
+                            hasMore = false
+                        }
                     },
                     onFailure = { exception ->
                         _syncStatus.value = SyncStatus.Error(exception.message ?: "Error desconocido")
