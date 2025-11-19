@@ -106,16 +106,16 @@ object ExerciseDBMapper {
         return when {
             // Ejercicios avanzados
             name.contains("olympic") || name.contains("snatch") || 
-                name.contains("clean") || name.contains("pistol") -> "Avanzado"
+                name.contains("clean") || name.contains("pistol") -> "advanced"
             
             // Ejercicios de nivel intermedio
-            equipment.contains("barbell") || equipment.contains("cable") -> "Intermedio"
+            equipment.contains("barbell") || equipment.contains("cable") -> "intermediate"
             
             // Ejercicios principiantes
-            equipment.contains("machine") || equipment.contains("bodyweight") -> "Principiante"
+            equipment.contains("machine") || equipment.contains("bodyweight") -> "beginner"
             
             // Default a intermedio
-            else -> "Intermedio"
+            else -> "intermediate"
         }
     }
 }
