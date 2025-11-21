@@ -1,6 +1,7 @@
 package com.gymcompanion.app.presentation.screens.exercises
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.SubcomposeAsyncImage
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -31,6 +33,9 @@ fun ExerciseDetailScreen(
 ) {
     val exercise by viewModel.filteredExercises.collectAsState()
     val selectedExercise = exercise.find { it.id == exerciseId }
+    
+    // State for image zoom dialog
+    var zoomedImageUrl by remember { mutableStateOf<String?>(null) }
     
     Scaffold(
         topBar = {
@@ -71,6 +76,127 @@ fun ExerciseDetailScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
+                }
+                
+                // Imágenes del ejercicio
+                if (selectedExercise.illustrationPath?.isNotBlank() == true) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "📸 Demostración Visual",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Primera imagen (posición inicial)
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable { zoomedImageUrl = selectedExercise.illustrationPath }
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentAlignment = androidx.compose.ui.Alignment.Center
+                                        ) {
+                                            SubcomposeAsyncImage(
+                                                model = selectedExercise.illustrationPath,
+                                                contentDescription = "${selectedExercise.name} - Inicio",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                loading = {
+                                                    CircularProgressIndicator()
+                                                },
+                                                error = {
+                                                    Column(
+                                                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Text(
+                                                            text = "🏋️",
+                                                            style = MaterialTheme.typography.headlineLarge
+                                                        )
+                                                        Text(
+                                                            text = "Sin imagen",
+                                                            style = MaterialTheme.typography.bodySmall
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        Text(
+                                            text = "Inicio",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                    
+                                    // Segunda imagen (posición final) si existe
+                                    if (selectedExercise.illustrationPath2?.isNotBlank() == true) {
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable { zoomedImageUrl = selectedExercise.illustrationPath2 }
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                contentAlignment = androidx.compose.ui.Alignment.Center
+                                            ) {
+                                                SubcomposeAsyncImage(
+                                                    model = selectedExercise.illustrationPath2,
+                                                    contentDescription = "${selectedExercise.name} - Final",
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                    loading = {
+                                                        CircularProgressIndicator()
+                                                    },
+                                                    error = {
+                                                        Column(
+                                                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                                            verticalArrangement = Arrangement.Center
+                                                        ) {
+                                                            Text(
+                                                                text = "🏋️",
+                                                                style = MaterialTheme.typography.headlineLarge
+                                                            )
+                                                            Text(
+                                                                text = "Sin imagen",
+                                                                style = MaterialTheme.typography.bodySmall
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                            Text(
+                                                text = "Final",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                modifier = Modifier.padding(top = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 // Tags
@@ -204,6 +330,33 @@ fun ExerciseDetailScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+    
+    // Image zoom dialog
+    if (zoomedImageUrl != null) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { zoomedImageUrl = null }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { zoomedImageUrl = null },
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                SubcomposeAsyncImage(
+                    model = zoomedImageUrl,
+                    contentDescription = "Imagen ampliada",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    loading = {
+                        CircularProgressIndicator(color = Color.White)
+                    }
+                )
             }
         }
     }
