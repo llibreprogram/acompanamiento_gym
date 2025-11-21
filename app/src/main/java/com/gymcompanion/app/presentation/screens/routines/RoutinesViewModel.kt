@@ -6,6 +6,9 @@ import com.gymcompanion.app.data.local.entity.RoutineEntity
 import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
 import com.gymcompanion.app.data.local.entity.RoutineWithExercises
 import com.gymcompanion.app.domain.repository.RoutineRepository
+import com.gymcompanion.app.domain.repository.ExerciseRepository
+import com.gymcompanion.app.domain.usecase.RoutineGeneratorUseCase
+import com.gymcompanion.app.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -16,7 +19,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RoutinesViewModel @Inject constructor(
-    private val routineRepository: RoutineRepository
+    private val routineRepository: RoutineRepository,
+    private val exerciseRepository: ExerciseRepository,
+    private val routineGenerator: RoutineGeneratorUseCase
 ) : ViewModel() {
     
     // Lista de todas las rutinas
@@ -44,7 +49,7 @@ class RoutinesViewModel @Inject constructor(
     val selectedRoutine: StateFlow<RoutineWithExercises?> = _selectedRoutine.asStateFlow()
     
     /**
-     * Crea una nueva rutina
+     * Crea una nueva rutina con ejercicios generados automáticamente
      */
     fun createRoutine(
         name: String,
@@ -54,18 +59,29 @@ class RoutinesViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                val routine = RoutineEntity(
-                    userId = 1L, // TODO: Get actual user ID
-                    name = name,
-                    description = description,
-                    daysOfWeek = daysOfWeek.joinToString(","),
-                    duration = 60, // TODO: Calculate from exercises
-                    focusArea = "general_fitness",
-                    difficulty = "intermediate",
-                    isActive = isActive,
-                    createdAt = System.currentTimeMillis()
+                // Crear una solicitud de generación de rutina basada en los días seleccionados
+                val request = RoutineGenerationRequest(
+                    daysPerWeek = daysOfWeek.size,
+                    sessionDuration = 60,
+                    goal = FitnessGoal.GENERAL_FITNESS,
+                    level = FitnessLevel.INTERMEDIATE,
+                    equipment = AvailableEquipment.FULL_GYM,
+                    consecutiveDays = false,
+                    physicalLimitations = emptyList(),
+                    age = null,
+                    gender = null,
+                    weight = null,
+                    height = null,
+                    experienceLevel = null,
+                    preferences = null,
+                    restrictions = null,
+                    specificDays = daysOfWeek
                 )
-                routineRepository.insertRoutine(routine)
+                
+                // Generar rutinas con ejercicios automáticamente
+                // El generador ya crea las rutinas en la base de datos con ejercicios
+                routineGenerator.generateRoutine(request, userId = 1L)
+                
                 _uiState.value = RoutinesUiState.Success
             } catch (e: Exception) {
                 _uiState.value = RoutinesUiState.Error(e.message ?: "Error al crear rutina")
@@ -90,7 +106,7 @@ class RoutinesViewModel @Inject constructor(
                     userId = 1L, // TODO: Get actual user ID
                     name = name,
                     description = description,
-                    daysOfWeek = daysOfWeek.joinToString(","),
+                    daysOfWeek = daysOfWeek.joinToString(prefix = "[\"", separator = "\",\"", postfix = "\"]"),
                     duration = 60, // TODO: Calculate from exercises
                     focusArea = "general_fitness",
                     difficulty = "intermediate",

@@ -60,6 +60,9 @@ fun GymCompanionNavigation() {
                     },
                     onNavigateToRoutines = {
                         navController.navigate(Screen.Routines.route)
+                    },
+                    onNavigateToProgress = {
+                        navController.navigate(Screen.Progress.route)
                     }
                 )
             }

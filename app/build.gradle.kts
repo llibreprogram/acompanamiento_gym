@@ -5,6 +5,18 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// FIX: Force AAPT2 to use linux-aarch64 classifier because the environment is ARM64
+// but Gradle resolves x86-64 by default for some reason.
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "com.android.tools.build" && requested.name == "aapt2") {
+                useTarget("com.android.tools.build:aapt2:${requested.version}:linux-aarch64")
+            }
+        }
+    }
+}
+
 android {
     namespace = "com.gymcompanion.app"
     compileSdk = 34
@@ -125,6 +137,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

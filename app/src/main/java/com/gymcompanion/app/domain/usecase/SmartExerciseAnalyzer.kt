@@ -262,15 +262,7 @@ class SmartExerciseAnalyzer @Inject constructor() {
     }
 }
 
-/**
- * Recomendación de volumen de entrenamiento
- */
-data class VolumeRecommendation(
-    val sets: Int,
-    val repsMin: Int,
-    val repsMax: Int,
-    val rest: Int // segundos
-)
+
 
 /**
  * Análisis de balance push/pull

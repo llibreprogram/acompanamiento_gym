@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gymcompanion.app.data.local.entity.ExerciseEntity
 import com.gymcompanion.app.domain.repository.ExerciseRepository
-import com.gymcompanion.app.domain.repository.ExerciseDBRepository
-import com.gymcompanion.app.domain.repository.SyncStatus
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -17,32 +16,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ExercisesViewModel @Inject constructor(
-    private val exerciseRepository: ExerciseRepository,
-    private val exerciseDBRepository: ExerciseDBRepository
+    private val exerciseRepository: ExerciseRepository
 ) : ViewModel() {
-    // Progreso de sincronización
-    private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
-    val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
-
-    init {
-        observeSyncStatus()
-    }
-
-    private fun observeSyncStatus() {
-        viewModelScope.launch {
-            exerciseDBRepository.getSyncStatus().collect { status ->
-                _syncStatus.value = status
-            }
-        }
-    }
-
-    fun syncExercises() {
-        viewModelScope.launch {
-            _syncStatus.value = SyncStatus.Idle
-            exerciseDBRepository.syncExercisesToLocal()
-        }
-    }
-    
     // Query de búsqueda
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()

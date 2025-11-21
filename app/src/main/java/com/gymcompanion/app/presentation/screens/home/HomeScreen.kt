@@ -35,11 +35,13 @@ import java.util.*
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onStartWorkout: (Long) -> Unit = {},
-    onNavigateToRoutines: () -> Unit = {}
+    onNavigateToRoutines: () -> Unit = {},
+    onNavigateToProgress: () -> Unit = {}
 ) {
     val todayRoutines by viewModel.todayRoutines.collectAsState()
     val weeklyStats by viewModel.weeklyStats.collectAsState()
     val lastSession by viewModel.lastSession.collectAsState()
+    val dailyWorkoutData by viewModel.dailyWorkoutData.collectAsState()
     
     // Motivational quotes
     val quotes = remember {
@@ -174,7 +176,7 @@ fun HomeScreen(
                         title = "Estadísticas",
                         subtitle = "Ve tu progreso",
                         icon = Icons.Default.BarChart,
-                        onClick = { /* TODO */ },
+                        onClick = onNavigateToProgress,
                         modifier = Modifier.weight(1f),
                         gradient = Brush.linearGradient(
                             colors = listOf(
@@ -256,15 +258,18 @@ fun HomeScreen(
                     elevation = 3.dp
                 ) {
                     WeeklyProgressChart(
-                        weeklyData = listOf(
-                            "Lun" to 85f,
-                            "Mar" to 92f,
-                            "Mié" to 78f,
-                            "Jue" to 95f,
-                            "Vie" to 88f,
-                            "Sáb" to 0f,
-                            "Dom" to 0f
-                        ),
+                        weeklyData = dailyWorkoutData.ifEmpty {
+                            // Datos por defecto si no hay entrenamientos
+                            listOf(
+                                "Lun" to 0f,
+                                "Mar" to 0f,
+                                "Mié" to 0f,
+                                "Jue" to 0f,
+                                "Vie" to 0f,
+                                "Sáb" to 0f,
+                                "Dom" to 0f
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

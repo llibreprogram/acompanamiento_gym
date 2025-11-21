@@ -43,7 +43,10 @@ class RoutineGeneratorUseCase @Inject constructor(
             // 3. Filtrar por restricciones médicas
             val restrictionMatch = request.restrictions == null || !exercise.name.contains(request.restrictions, ignoreCase = true)
             // 4. Filtrar por preferencias
-            val preferenceMatch = request.preferences == null || (exercise.tags?.split(",")?.map { it.trim() }?.contains(request.preferences) == true)
+            // FIX: Si las etiquetas son nulas, permitimos el ejercicio para no filtrar todo
+            val preferenceMatch = request.preferences == null || 
+                                  exercise.tags == null || 
+                                  (exercise.tags.split(",").map { it.trim() }.contains(request.preferences) == true)
             // 5. Filtrar por edad, peso, altura si aplica (puedes agregar lógica específica)
             experienceMatch && genderMatch && restrictionMatch && preferenceMatch
         }
@@ -68,7 +71,9 @@ class RoutineGeneratorUseCase @Inject constructor(
         userId: Long,
         exercises: List<ExerciseEntity>
     ): List<RoutineEntity> {
-        val days = if (request.consecutiveDays) {
+        val days = if (!request.specificDays.isNullOrEmpty()) {
+            request.specificDays
+        } else if (request.consecutiveDays) {
             listOf("Lunes", "Martes", "Miércoles")
         } else {
             listOf("Lunes", "Miércoles", "Viernes")

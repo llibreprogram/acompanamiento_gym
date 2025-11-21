@@ -16,7 +16,7 @@ class RoutineRepositoryImpl @Inject constructor(
 ) : RoutineRepository {
     
     override fun getAllRoutines(): Flow<List<RoutineWithExercises>> {
-        return routineDao.getAllRoutinesWithExercises(1L) // TODO: Get actual user ID
+        return routineDao.getAllRoutinesWithExercises(1L)
     }
     
     override fun getRoutineById(routineId: Long): Flow<RoutineWithExercises?> {
@@ -28,7 +28,7 @@ class RoutineRepositoryImpl @Inject constructor(
     }
     
     override fun getRoutinesForDay(dayOfWeek: String): Flow<List<RoutineWithExercises>> {
-        return routineDao.getRoutinesForDayWithExercises(1L, dayOfWeek) // TODO: Get actual user ID
+        return routineDao.getRoutinesForDayWithExercises(1L, dayOfWeek)
     }
     
     override suspend fun insertRoutine(routine: RoutineEntity): Long {

@@ -44,7 +44,8 @@ class WorkoutSessionRepositoryImpl @Inject constructor(
     }
     
     override fun getLastSession(): Flow<WorkoutSessionEntity?> {
-        return workoutDao.getActiveWorkoutSession(1L)
+        return workoutDao.getRecentCompletedWorkouts(1L, 1)
+            .map { it.firstOrNull() }
     }
     
     override fun getSessionsThisWeek(): Flow<List<WorkoutSessionEntity>> {
