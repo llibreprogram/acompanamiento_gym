@@ -23,7 +23,8 @@ import kotlin.random.Random
 class RoutineGeneratorUseCase @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
     private val routineRepository: RoutineRepository,
-    private val smartAnalyzer: SmartExerciseAnalyzer
+    private val smartAnalyzer: SmartExerciseAnalyzer,
+    private val progressAnalyzer: ProgressAnalyzer
 ) {
     
     /**
@@ -51,7 +52,7 @@ class RoutineGeneratorUseCase @Inject constructor(
             experienceMatch && genderMatch && restrictionMatch && preferenceMatch
         }
 
-        Log.d("RoutineGeneratorUseCase", "Ejercicios filtrados: ${filteredExercises.size} de ${allExercises.size} para perfil: age=${request.age}, gender=${request.gender}, weight=${request.weight}, height=${request.height}, experienceLevel=${request.experienceLevel}, preferences=${request.preferences}, restrictions=${request.restrictions}")
+
 
         // Usar filteredExercises en vez de allExercises para la generación
         return when (request.daysPerWeek) {
@@ -79,7 +80,7 @@ class RoutineGeneratorUseCase @Inject constructor(
             listOf("Lunes", "Miércoles", "Viernes")
         }
         val routines = mutableListOf<RoutineEntity>()
-        val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+        val globalUsedNames: MutableSet<String> = mutableSetOf()
 
         days.forEachIndexed { index, day ->
             val routineName = when (request.goal) {
@@ -99,11 +100,16 @@ class RoutineGeneratorUseCase @Inject constructor(
             )
 
             // Evitar ejercicios repetidos en toda la semana
-            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+            selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
 
-            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
+            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro pero mantener los ya seleccionados
             if (selectedExercises.size < 6) {
-                selectedExercises = exercises.filterNot { globalUsedExercises.contains(it.id) }.take(6)
+                val currentNames = selectedExercises.map { it.name }.toSet()
+                val additional = exercises
+                    .filterNot { globalUsedNames.contains(it.name) }
+                    .filterNot { currentNames.contains(it.name) }
+                    .take(6 - selectedExercises.size)
+                selectedExercises = selectedExercises + additional
             }
 
             val routineId = createRoutineWithExercises(
@@ -129,7 +135,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                 createdAt = System.currentTimeMillis()
             ))
 
-            globalUsedExercises.addAll(selectedExercises.map { it.id })
+            globalUsedNames.addAll(selectedExercises.map { it.name })
         }
 
         return routines
@@ -162,8 +168,8 @@ class RoutineGeneratorUseCase @Inject constructor(
         val routines = mutableListOf<RoutineEntity>()
         
     var previousMuscleGroups: List<String> = emptyList()
-    var previousExercises: Set<Long> = emptySet()
-    val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+    var previousExercises: Set<String> = emptySet()
+    val globalUsedNames: MutableSet<String> = mutableSetOf()
     days.zip(splits).forEach { (day, split) ->
             val muscleGroups = when (split) {
                 "Push" -> listOf("Pecho", "Hombros", "Tríceps")
@@ -188,21 +194,23 @@ class RoutineGeneratorUseCase @Inject constructor(
             selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
 
             // Evitar ejercicios repetidos en toda la semana
-            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+            selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
 
             // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
             if (selectedExercises.size < 5) {
                 selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
-                selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+                selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
             }
             if (selectedExercises.size < 3) {
                 selectedExercises = filterByPhysicalLimitations(
                     filterByEquipment(exercises, request.equipment),
                     request.physicalLimitations
-                ).filterNot { globalUsedExercises.contains(it.id) }
+                ).filterNot { globalUsedNames.contains(it.name) }
             }
 
-            selectedExercises = selectedExercises.take(7)
+            selectedExercises = selectedExercises
+                .distinctBy { it.name.trim().lowercase() }
+                .take(7)
 
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -228,8 +236,8 @@ class RoutineGeneratorUseCase @Inject constructor(
             ))
 
             previousMuscleGroups = muscleGroups
-            previousExercises = selectedExercises.map { it.id }.toSet()
-            globalUsedExercises.addAll(selectedExercises.map { it.id })
+            previousExercises = selectedExercises.map { it.name }.toSet()
+            globalUsedNames.addAll(selectedExercises.map { it.name })
         }
 
         return routines
@@ -248,8 +256,8 @@ class RoutineGeneratorUseCase @Inject constructor(
         val routines = mutableListOf<RoutineEntity>()
         
     var previousMuscleGroups: List<String> = emptyList()
-    var previousExercises: Set<Long> = emptySet()
-    val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+    var previousExercises: Set<String> = emptySet()
+    val globalUsedNames: MutableSet<String> = mutableSetOf()
     days.zip(splits).forEach { (day, split) ->
             val muscleGroups = if (split == "Superior") {
                 listOf("Pecho", "Espalda", "Hombros", "Brazos")
@@ -273,21 +281,23 @@ class RoutineGeneratorUseCase @Inject constructor(
             selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
 
             // Evitar ejercicios repetidos en toda la semana
-            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+            selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
 
             // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
             if (selectedExercises.size < 5) {
                 selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
-                selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
+                selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
             }
             if (selectedExercises.size < 3) {
                 selectedExercises = filterByPhysicalLimitations(
                     filterByEquipment(exercises, request.equipment),
                     request.physicalLimitations
-                ).filterNot { globalUsedExercises.contains(it.id) }
+                ).filterNot { globalUsedNames.contains(it.name) }
             }
 
-            selectedExercises = selectedExercises.take(7)
+            selectedExercises = selectedExercises
+                .distinctBy { it.name.trim().lowercase() }
+                .take(7)
 
             val routineId = createRoutineWithExercises(
                 userId = userId,
@@ -313,8 +323,8 @@ class RoutineGeneratorUseCase @Inject constructor(
             ))
 
             previousMuscleGroups = muscleGroups
-            previousExercises = selectedExercises.map { it.id }.toSet()
-            globalUsedExercises.addAll(selectedExercises.map { it.id })
+            previousExercises = selectedExercises.map { it.name }.toSet()
+            globalUsedNames.addAll(selectedExercises.map { it.name })
         }
 
         return routines
@@ -357,6 +367,7 @@ class RoutineGeneratorUseCase @Inject constructor(
         priorities.forEach { (muscle, count) ->
             val muscleExercises = filtered
                 .filter { it.muscleGroup.contains(muscle, ignoreCase = true) }
+                .filter { exercise -> selected.none { it.name.trim().equals(exercise.name.trim(), ignoreCase = true) } } // Evitar duplicados por NOMBRE (robusto)
                 .map { exercise ->
                     val suitability = smartAnalyzer.calculateExerciseSuitability(
                         exercise = exercise,
@@ -378,7 +389,7 @@ class RoutineGeneratorUseCase @Inject constructor(
         // FALLBACK: Si aún no tenemos suficientes, rellenar con los mejores ejercicios disponibles
         if (selected.size < targetCount) {
             val remaining = filtered
-                .filterNot { it in selected }
+                .filterNot { exercise -> selected.any { it.name.trim().equals(exercise.name.trim(), ignoreCase = true) } }
                 .map { exercise ->
                     val suitability = smartAnalyzer.calculateExerciseSuitability(
                         exercise = exercise,
@@ -398,9 +409,9 @@ class RoutineGeneratorUseCase @Inject constructor(
         
         // Verificar balance push/pull
         val pushPullAnalysis = smartAnalyzer.analyzePushPullRatio(selected)
-        // Podrías usar esta información para ajustar la selección si es necesario
         
-        return selected.take(targetCount)
+        // Final deduplication just in case
+        return selected.distinctBy { it.name.trim().lowercase() }.take(targetCount)
     }
     
     /**
@@ -435,6 +446,13 @@ class RoutineGeneratorUseCase @Inject constructor(
         exercises.forEachIndexed { index, exercise ->
             val (sets, reps) = calculateOptimalVolume(goal, level, exercise.exerciseType)
             
+            // SUGERENCIA INTELIGENTE: Calcular peso sugerido
+            val suggestedWeight = progressAnalyzer.suggestNextWeight(
+                exerciseId = exercise.id,
+                userId = userId,
+                targetReps = reps
+            )
+            
             routineRepository.addExerciseToRoutine(
                 RoutineExerciseEntity(
                     routineId = routineId,
@@ -442,6 +460,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                     orderIndex = index,
                     plannedSets = sets,
                     plannedReps = "$reps",
+                    plannedWeight = if (suggestedWeight > 0) suggestedWeight else null,
                     restTimeSeconds = calculateRestTime(goal, exercise.exerciseType, level)
                 )
             )

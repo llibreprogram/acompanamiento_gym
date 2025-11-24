@@ -184,11 +184,22 @@ fun RoutineCard(
             
             // Días de la semana
             if (routine.daysOfWeek.isNotBlank()) {
-                Text(
-                    text = "Días: ${routine.daysOfWeek}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                val daysText = try {
+                    val gson = com.google.gson.Gson()
+                    val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+                    val days = gson.fromJson<List<String>>(routine.daysOfWeek, type)
+                    days.joinToString(", ")
+                } catch (e: Exception) {
+                    routine.daysOfWeek
+                }
+                
+                if (daysText.isNotBlank()) {
+                    Text(
+                        text = "Días: $daysText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             
             // Información de ejercicios

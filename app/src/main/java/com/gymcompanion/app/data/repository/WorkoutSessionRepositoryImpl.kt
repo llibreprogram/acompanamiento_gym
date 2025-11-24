@@ -113,4 +113,12 @@ class WorkoutSessionRepositoryImpl @Inject constructor(
         val sets = getSessionSets(sessionId).first()
         return sets.sumOf { (it.weightUsed ?: 0.0) * it.repsCompleted }
     }
+
+    override suspend fun getExerciseHistory(userId: Long, exerciseId: Long, limit: Int): List<WorkoutSessionWithSets> {
+        val sessions = workoutDao.getSessionsByExercise(exerciseId, limit).first()
+        return sessions.map { session ->
+            val sets = workoutDao.getSetsForWorkoutSession(session.id).first()
+            WorkoutSessionWithSets(session, sets)
+        }
+    }
 }

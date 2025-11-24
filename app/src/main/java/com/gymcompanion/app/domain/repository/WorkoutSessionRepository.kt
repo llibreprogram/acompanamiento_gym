@@ -88,4 +88,9 @@ interface WorkoutSessionRepository {
      * Calcula el volumen total de una sesión (peso x reps)
      */
     suspend fun calculateSessionVolume(sessionId: Long): Double
+
+    /**
+     * Obtiene el historial de sesiones donde se realizó un ejercicio específico
+     */
+    suspend fun getExerciseHistory(userId: Long, exerciseId: Long, limit: Int): List<WorkoutSessionWithSets>
 }

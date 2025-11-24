@@ -21,9 +21,9 @@ class FreeExerciseDBRepository @Inject constructor(
 ) {
     
     companion object {
-        // Base URL para las imágenes del repositorio Free Exercise DB en GitHub
+        // Base URL para las imágenes del repositorio Free Exercise DB en GitHub (usando JsDelivr CDN para evitar rate limits)
         private const val GITHUB_IMAGES_BASE_URL = 
-            "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/"
+            "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/"
     }
     
     /**
