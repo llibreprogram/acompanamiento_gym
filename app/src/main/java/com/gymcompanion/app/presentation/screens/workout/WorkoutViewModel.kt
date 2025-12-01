@@ -1,5 +1,7 @@
 package com.gymcompanion.app.presentation.screens.workout
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gymcompanion.app.data.local.entity.ExerciseSetEntity
@@ -7,7 +9,9 @@ import com.gymcompanion.app.data.local.entity.RoutineWithExercises
 import com.gymcompanion.app.data.local.entity.WorkoutSessionEntity
 import com.gymcompanion.app.domain.repository.RoutineRepository
 import com.gymcompanion.app.domain.repository.WorkoutSessionRepository
+import com.gymcompanion.app.presentation.service.WorkoutNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -17,8 +21,13 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val workoutSessionRepository: WorkoutSessionRepository,
-    private val routineRepository: RoutineRepository
+    private val routineRepository: RoutineRepository,
+    private val rpeAnalyzer: com.gymcompanion.app.domain.usecase.RPEAnalyzer,
+    val voiceCoach: com.gymcompanion.app.domain.usecase.VoiceCoachManager,
+    private val haptics: com.gymcompanion.app.domain.usecase.HapticFeedbackManager,
+    val plateCalculator: com.gymcompanion.app.domain.usecase.PlateCalculator
 ) : ViewModel() {
     
     // Sesión actual
@@ -55,6 +64,9 @@ class WorkoutViewModel @Inject constructor(
     private val _restTimerSeconds = MutableStateFlow(0)
     val restTimerSeconds: StateFlow<Int> = _restTimerSeconds.asStateFlow()
     
+    private val _restTimerTotalSeconds = MutableStateFlow(0)
+    val restTimerTotalSeconds: StateFlow<Int> = _restTimerTotalSeconds.asStateFlow()
+    
     private val _isResting = MutableStateFlow(false)
     val isResting: StateFlow<Boolean> = _isResting.asStateFlow()
     
@@ -62,8 +74,37 @@ class WorkoutViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<WorkoutUiState>(WorkoutUiState.Loading)
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
     
+    // Feedback de RPE
+    private val _rpeFeedback = MutableSharedFlow<String>()
+    val rpeFeedback: SharedFlow<String> = _rpeFeedback.asSharedFlow()
+    
     // Tiempo de inicio
     private var sessionStartTime: Long = 0
+    
+    // TODO: Fix NaN issue in notification updates
+    /*
+    init {
+        // Observar cambios en ejercicio y timer para actualizar notificación
+        viewModelScope.launch {
+            combine(
+                currentExerciseIndex,
+                timerSeconds,
+                routine
+            ) { exerciseIndex, timer, routineData ->
+                Triple(exerciseIndex, timer, routineData)
+            }.collect { (exerciseIndex, timer, routineData) ->
+                routineData?.let { routine ->
+                    val currentExercise = routine.routineExercises.getOrNull(exerciseIndex)
+                    currentExercise?.let { exerciseWithDetails ->
+                        val exerciseName = exerciseWithDetails.exercise.name
+                        val formattedTime = formatTime(timer)
+                        WorkoutNotificationService.updateNotification(context, exerciseName, formattedTime)
+                    }
+                }
+            }
+        }
+    }
+    */
     
     /**
      * Inicia una nueva sesión de entrenamiento
@@ -73,7 +114,9 @@ class WorkoutViewModel @Inject constructor(
             try {
                 // Cargar la rutina
                 routineRepository.getRoutineById(routineId).first()?.let { routineWithExercises ->
+                    Log.d("WorkoutViewModel", "Loaded routine with ${routineWithExercises.routineExercises.size} exercises")
                     _routine.value = routineWithExercises
+
                     
                     // Crear nueva sesión
                     sessionStartTime = System.currentTimeMillis()
@@ -90,6 +133,11 @@ class WorkoutViewModel @Inject constructor(
                     
                     // Iniciar timer
                     startTimer()
+                    
+                    // TODO: Fix notification service
+                    // Iniciar servicio de notificación
+                    // val firstExercise = routineWithExercises.routineExercises.firstOrNull()?.exercise?.name ?: "Workout"
+                    // WorkoutNotificationService.startService(context, routineId, firstExercise, "00:00")
                     
                     _uiState.value = WorkoutUiState.Active
                 }
@@ -108,6 +156,7 @@ class WorkoutViewModel @Inject constructor(
         weight: Double?,
         reps: Int?,
         rir: Int?,
+        rpe: Int?,
         notes: String = ""
     ) {
         viewModelScope.launch {
@@ -120,10 +169,23 @@ class WorkoutViewModel @Inject constructor(
                         weightUsed = weight,
                         repsCompleted = reps ?: 0,
                         rir = rir,
+                        rpe = rpe,
                         notes = notes,
                         performedAt = System.currentTimeMillis()
                     )
                     workoutSessionRepository.insertExerciseSet(exerciseSet)
+                    
+                    // Feedback háptico y de voz
+                    haptics.vibrateSuccess()
+                    voiceCoach.announceSetComplete()
+                    
+                    // Analizar RPE y generar feedback
+                    rpe?.let {
+                        val feedback = rpeAnalyzer.analyzeSet(it)
+                        if (feedback.adjustment != com.gymcompanion.app.domain.usecase.RPEAnalyzer.Adjustment.KEEP_SAME) {
+                            _rpeFeedback.emit(feedback.message)
+                        }
+                    }
                     
                     // Iniciar descanso automático si está configurado
                     val currentRoutine = _routine.value
@@ -131,6 +193,7 @@ class WorkoutViewModel @Inject constructor(
                     exercise?.routineExercise?.restTimeSeconds?.let { restSeconds ->
                         if (restSeconds > 0) {
                             startRestTimer(restSeconds)
+                            voiceCoach.announceRestTimer(restSeconds)
                         }
                     }
                 } catch (e: Exception) {
@@ -211,6 +274,14 @@ class WorkoutViewModel @Inject constructor(
                     )
                     workoutSessionRepository.updateSession(session)
                     
+                    // Feedback de finalización
+                    haptics.vibrateStrong()
+                    voiceCoach.announceWorkoutComplete()
+                    
+                    // TODO: Fix notification service
+                    // Detener servicio de notificación
+                    // WorkoutNotificationService.stopService(context)
+                    
                     _uiState.value = WorkoutUiState.Completed
                 } catch (e: Exception) {
                     _uiState.value = WorkoutUiState.Error(e.message ?: "Error al finalizar sesión")
@@ -238,6 +309,11 @@ class WorkoutViewModel @Inject constructor(
                         notes = ""
                     )
                     workoutSessionRepository.deleteSession(session)
+                    
+                    // TODO: Fix notification service
+                    // Detener servicio de notificación
+                    // WorkoutNotificationService.stopService(context)
+                    
                     _uiState.value = WorkoutUiState.Cancelled
                 } catch (e: Exception) {
                     _uiState.value = WorkoutUiState.Error(e.message ?: "Error al cancelar sesión")
@@ -283,6 +359,7 @@ class WorkoutViewModel @Inject constructor(
     fun startRestTimer(seconds: Int) {
         _isResting.value = true
         _restTimerSeconds.value = seconds
+        _restTimerTotalSeconds.value = seconds // Store total for progress calculation
         
         viewModelScope.launch {
             while (_restTimerSeconds.value > 0 && _isResting.value) {
@@ -291,6 +368,9 @@ class WorkoutViewModel @Inject constructor(
             }
             if (_restTimerSeconds.value == 0) {
                 _isResting.value = false
+                // Vibración al completar descanso
+                haptics.vibrateMedium()
+                voiceCoach.announceRestComplete()
             }
         }
     }
@@ -301,6 +381,15 @@ class WorkoutViewModel @Inject constructor(
     fun skipRest() {
         _isResting.value = false
         _restTimerSeconds.value = 0
+    }
+
+    /**
+     * Añade tiempo al descanso actual
+     */
+    fun addRestTime(seconds: Int) {
+        if (_isResting.value) {
+            _restTimerSeconds.value += seconds
+        }
     }
     
     /**

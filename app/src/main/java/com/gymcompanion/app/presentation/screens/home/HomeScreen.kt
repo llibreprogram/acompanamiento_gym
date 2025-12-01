@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,12 +37,26 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onStartWorkout: (Long) -> Unit = {},
     onNavigateToRoutines: () -> Unit = {},
-    onNavigateToProgress: () -> Unit = {}
+    onNavigateToProgress: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {}
 ) {
+    val userName by viewModel.userName.collectAsState()
     val todayRoutines by viewModel.todayRoutines.collectAsState()
     val weeklyStats by viewModel.weeklyStats.collectAsState()
     val lastSession by viewModel.lastSession.collectAsState()
     val dailyWorkoutData by viewModel.dailyWorkoutData.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val overtrainingRisk by viewModel.overtrainingRisk.collectAsState()
+    val sessionPrediction by viewModel.sessionPrediction.collectAsState()
+    val healthData by viewModel.healthData.collectAsState()
+    val healthConnectAvailable by viewModel.healthConnectAvailable.collectAsState()
+    
+    // Health Connect permissions
+    val requestPermissions = rememberHealthConnectPermissionsLauncher(
+        onPermissionsGranted = {
+            viewModel.loadHealthData()
+        }
+    )
     
     // Motivational quotes
     val quotes = remember {
@@ -73,138 +88,118 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Welcome message with animation
             item {
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) { visible = true }
-                
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = fadeIn(tween(600)) + slideInVertically { -it/2 }
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = getGreeting(),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Hoy es ${getCurrentDate()}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                StaggeredEntrance(index = 0) {
+                    WelcomeSection(
+                        name = userName ?: "",
+                        quote = todayQuote ?: ""
+                    )
                 }
             }
             
-            // Motivational quote card
+            // Smart Recommendation Engine
             item {
-                ModernCard(
-                    gradient = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    ),
-                    elevation = 2.dp
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = todayQuote,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                StaggeredEntrance(index = 2) {
+                    SmartRecommendationCard(
+                        overtrainingRisk = overtrainingRisk,
+                        sessionPrediction = sessionPrediction,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
             
             // Quick stats with modern cards
             item {
-                QuickStatsModernSection(
-                    weeklyStats = weeklyStats,
-                    viewModel = viewModel
-                )
+                StaggeredEntrance(index = 3) {
+                    QuickStatsModernSection(
+                        weeklyStats = weeklyStats,
+                        viewModel = viewModel
+                    )
+                }
+            }
+            
+            // Health Connect data
+            if (healthConnectAvailable) {
+                item {
+                    StaggeredEntrance(index = 4) {
+                        HealthDataSection(
+                            steps = healthData?.steps?.count,
+                            weight = healthData?.weight?.weightKg,
+                            heartRate = healthData?.heartRate?.beatsPerMinute,
+                            onRequestPermissions = requestPermissions,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
             
             // Quick actions
             item {
-                Text(
-                    text = "Acciones Rápidas",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickActionCard(
-                        title = "Nueva Rutina",
-                        subtitle = "Crea una rutina personalizada",
-                        icon = Icons.Default.Add,
-                        onClick = onNavigateToRoutines,
-                        modifier = Modifier.weight(1f),
-                        gradient = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary
+                StaggeredEntrance(index = 5) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        QuickActionCard(
+                            title = "Nueva Rutina",
+                            subtitle = "Crea una rutina personalizada",
+                            icon = Icons.Default.Add,
+                            onClick = onNavigateToRoutines,
+                            modifier = Modifier.weight(1f),
+                            gradient = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
                             )
                         )
-                    )
-                    QuickActionCard(
-                        title = "Estadísticas",
-                        subtitle = "Ve tu progreso",
-                        icon = Icons.Default.BarChart,
-                        onClick = onNavigateToProgress,
-                        modifier = Modifier.weight(1f),
-                        gradient = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.secondary,
-                                MaterialTheme.colorScheme.tertiary
+                        QuickActionCard(
+                            title = "Estadísticas",
+                            subtitle = "Ve tu progreso",
+                            icon = Icons.Default.BarChart,
+                            onClick = onNavigateToAnalytics,
+                            modifier = Modifier.weight(1f),
+                            gradient = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.secondary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
                             )
                         )
-                    )
+                    }
                 }
             }
             
             // Today's routines
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "🏋️ Rutinas de Hoy",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    ModernBadge(
-                        text = "${todayRoutines.size}",
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                StaggeredEntrance(index = 6) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🏋️ Rutinas de Hoy",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        ModernBadge(
+                            text = "${todayRoutines.size}",
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
             
@@ -243,45 +238,51 @@ fun HomeScreen(
             
             // Motivational tip card
             item {
-                MotivationCard(
-                    tip = "La consistencia vence al talento cuando el talento no es consistente.",
-                    author = "Anónimo",
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // Weekly progress chart
-            item {
-                ModernCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    elevation = 3.dp
-                ) {
-                    WeeklyProgressChart(
-                        weeklyData = dailyWorkoutData.ifEmpty {
-                            // Datos por defecto si no hay entrenamientos
-                            listOf(
-                                "Lun" to 0f,
-                                "Mar" to 0f,
-                                "Mié" to 0f,
-                                "Jue" to 0f,
-                                "Vie" to 0f,
-                                "Sáb" to 0f,
-                                "Dom" to 0f
-                            )
-                        },
+                StaggeredEntrance(index = 1) {
+                    MotivationCard(
+                        tip = "La consistencia vence al talento cuando el talento no es consistente.",
+                        author = "Anónimo",
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
 
+            // Weekly progress chart
+            item {
+                StaggeredEntrance(index = 6) {
+                    ModernCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        elevation = 3.dp
+                    ) {
+                        InteractiveChart(
+                            dataPoints = dailyWorkoutData.ifEmpty {
+                                // Datos por defecto si no hay entrenamientos
+                                listOf(
+                                    "Lun" to 0f,
+                                    "Mar" to 0f,
+                                    "Mié" to 0f,
+                                    "Jue" to 0f,
+                                    "Vie" to 0f,
+                                    "Sáb" to 0f,
+                                    "Dom" to 0f
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
             // Achievements section
             item {
-                Text(
-                    text = "🏆 Logros",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                StaggeredEntrance(index = 7) {
+                    Text(
+                        text = "🏆 Logros",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             item {
@@ -314,16 +315,29 @@ fun HomeScreen(
 
             // Workout streak calendar
             item {
-                ModernCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    elevation = 3.dp
-                ) {
-                    WorkoutStreakCalendar(
-                        streakDays = listOf(true, true, false, true, true, false, false),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                StaggeredEntrance(index = 8) {
+                    ModernCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        elevation = 3.dp
+                    ) {
+                        WorkoutStreakCalendar(
+                            streakDays = listOf(true, true, false, true, true, false, false),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
+            }
+        }
+            
+            // Pull-to-refresh indicator
+            AnimatedVisibility(
+                visible = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter)
+            ) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -332,7 +346,7 @@ fun HomeScreen(
 /**
  * Obtiene saludo según hora del día
  */
-private fun getGreeting(): String {
+fun getGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when (hour) {
         in 5..11 -> "Buenos días 🌅"
@@ -345,7 +359,7 @@ private fun getGreeting(): String {
 /**
  * Obtiene fecha actual formateada
  */
-private fun getCurrentDate(): String {
+fun getCurrentDate(): String {
     val sdf = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
     return sdf.format(Date()).capitalize(Locale.getDefault())
 }
@@ -502,6 +516,9 @@ fun QuickStatsModernSection(
     weeklyStats: WeeklyStats,
     viewModel: HomeViewModel
 ) {
+    val volumeTrend by viewModel.volumeTrend.collectAsState()
+    val frequencyTrend by viewModel.frequencyTrend.collectAsState()
+    
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "📈 Esta Semana",
@@ -522,7 +539,9 @@ fun QuickStatsModernSection(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 iconBackgroundColor = MaterialTheme.colorScheme.primary,
-                iconColor = MaterialTheme.colorScheme.onPrimary
+                iconColor = MaterialTheme.colorScheme.onPrimary,
+                trendDirection = frequencyTrend?.direction,
+                trendPercentage = frequencyTrend?.percentageChange
             )
         }
         
@@ -539,7 +558,8 @@ fun QuickStatsModernSection(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 iconBackgroundColor = MaterialTheme.colorScheme.secondary,
-                iconColor = MaterialTheme.colorScheme.onSecondary
+                iconColor = MaterialTheme.colorScheme.onSecondary,
+                showTrend = false // No trend for time yet
             )
             StatCard(
                 title = "Volumen",
@@ -550,7 +570,9 @@ fun QuickStatsModernSection(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                iconColor = MaterialTheme.colorScheme.onTertiary
+                iconColor = MaterialTheme.colorScheme.onTertiary,
+                trendDirection = volumeTrend?.direction,
+                trendPercentage = volumeTrend?.percentageChange
             )
         }
     }
@@ -673,5 +695,22 @@ fun LastSessionModernCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun WelcomeSection(name: String, quote: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = getGreeting() + (if (name.isNotBlank()) ", $name" else ""),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "Hoy es ${getCurrentDate()}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

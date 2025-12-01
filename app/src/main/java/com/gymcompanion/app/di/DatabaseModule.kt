@@ -70,4 +70,10 @@ object DatabaseModule {
     fun provideUserPreferencesDao(database: GymDatabase): UserPreferencesDao {
         return database.userPreferencesDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideTrainingPhaseDao(database: GymDatabase): TrainingPhaseDao {
+        return database.trainingPhaseDao()
+    }
 }

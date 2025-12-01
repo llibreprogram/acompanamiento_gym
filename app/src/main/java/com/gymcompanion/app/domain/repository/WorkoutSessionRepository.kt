@@ -40,6 +40,16 @@ interface WorkoutSessionRepository {
     fun getSessionsThisWeek(): Flow<List<WorkoutSessionEntity>>
     
     /**
+     * Obtiene las sesiones de la semana pasada
+     */
+    fun getSessionsLastWeek(): Flow<List<WorkoutSessionEntity>>
+    
+    /**
+     * Obtiene las sesiones más recientes (últimos N días)
+     */
+    fun getRecentSessions(days: Int): Flow<List<WorkoutSessionEntity>>
+    
+    /**
      * Inserta una nueva sesión
      */
     suspend fun insertSession(session: WorkoutSessionEntity): Long

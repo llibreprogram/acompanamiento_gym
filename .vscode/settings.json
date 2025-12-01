@@ -1,0 +1,15 @@
+{
+    "files.watcherExclude": {
+        "**/build/**": true,
+        "**/.gradle/**": true,
+        "**/app/build/**": true,
+        "**/app/.cxx/**": true,
+        "**/app/.externalNativeBuild/**": true
+    },
+    "search.exclude": {
+        "**/build": true,
+        "**/.gradle": true,
+        "**/app/build": true
+    },
+    "gradle.nestedProjects": false
+}

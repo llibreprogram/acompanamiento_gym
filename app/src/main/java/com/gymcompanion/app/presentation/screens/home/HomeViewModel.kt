@@ -6,6 +6,8 @@ import com.gymcompanion.app.data.local.entity.RoutineWithExercises
 import com.gymcompanion.app.data.local.entity.WorkoutSessionEntity
 import com.gymcompanion.app.domain.repository.RoutineRepository
 import com.gymcompanion.app.domain.repository.WorkoutSessionRepository
+import com.gymcompanion.app.domain.repository.UserRepository
+import com.gymcompanion.app.domain.usecase.TrendAnalyzer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -18,15 +20,24 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val routineRepository: RoutineRepository,
-    private val workoutSessionRepository: WorkoutSessionRepository
+    private val workoutSessionRepository: WorkoutSessionRepository,
+    private val userRepository: UserRepository,
+    private val trendAnalyzer: TrendAnalyzer,
+    private val healthConnectManager: com.gymcompanion.app.domain.usecase.HealthConnectManager
 ) : ViewModel() {
     
-    init {
-        // Migrate existing routines to populate daysOfWeek field
-        viewModelScope.launch {
-            migrateRoutineDaysIfNeeded()
-        }
-    }
+    // Estado de refresco
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    
+    // Nombre del usuario
+    val userName: StateFlow<String?> = userRepository.getCurrentUser()
+        .map { it?.name }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
     
     // Rutinas del día actual
     val todayRoutines: StateFlow<List<RoutineWithExercises>> = getCurrentDayOfWeek()
@@ -76,6 +87,40 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+    
+    // Health Connect data
+    private val _healthData = MutableStateFlow<com.gymcompanion.app.domain.model.HealthData?>(null)
+    val healthData: StateFlow<com.gymcompanion.app.domain.model.HealthData?> = _healthData.asStateFlow()
+    
+    private val _healthConnectAvailable = MutableStateFlow(false)
+    val healthConnectAvailable: StateFlow<Boolean> = _healthConnectAvailable.asStateFlow()
+    
+    init {
+        viewModelScope.launch {
+            // Migrate existing routines to populate daysOfWeek field
+            migrateRoutineDaysIfNeeded()
+            
+            // Check Health Connect availability and load data
+            _healthConnectAvailable.value = healthConnectManager.isAvailable()
+            if (_healthConnectAvailable.value && healthConnectManager.hasAllPermissions()) {
+                loadHealthData()
+            }
+        }
+    }
+    
+    /**
+     * Load health data from Health Connect
+     */
+    fun loadHealthData() {
+        viewModelScope.launch {
+            try {
+                val data = healthConnectManager.getHealthData()
+                _healthData.value = data
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading health data", e)
+            }
+        }
+    }
     
     /**
      * Obtiene el día de la semana actual
@@ -171,6 +216,69 @@ class HomeViewModel @Inject constructor(
         }
     }
     
+    // Análisis de tendencias
+    val volumeTrend: StateFlow<com.gymcompanion.app.domain.usecase.TrendResult?> = combine(
+        sessionsThisWeek,
+        workoutSessionRepository.getSessionsLastWeek()
+    ) { currentWeek, lastWeek ->
+        if (currentWeek.isNotEmpty() && lastWeek.isNotEmpty()) {
+            trendAnalyzer.analyzeTrend(
+                currentPeriod = currentWeek,
+                previousPeriod = lastWeek,
+                metric = com.gymcompanion.app.domain.usecase.MetricType.VOLUME
+            )
+        } else null
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
+    val frequencyTrend: StateFlow<com.gymcompanion.app.domain.usecase.TrendResult?> = combine(
+        sessionsThisWeek,
+        workoutSessionRepository.getSessionsLastWeek()
+    ) { currentWeek, lastWeek ->
+        if (currentWeek.isNotEmpty() && lastWeek.isNotEmpty()) {
+            trendAnalyzer.analyzeTrend(
+                currentPeriod = currentWeek,
+                previousPeriod = lastWeek,
+                metric = com.gymcompanion.app.domain.usecase.MetricType.FREQUENCY
+            )
+        } else null
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
+    // Riesgo de sobreentrenamiento
+    val overtrainingRisk: StateFlow<com.gymcompanion.app.domain.usecase.OvertrainingRisk?> = 
+        workoutSessionRepository.getRecentSessions(14)
+            .map { sessions ->
+                if (sessions.isNotEmpty()) {
+                    trendAnalyzer.detectOvertraining(sessions)
+                } else null
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
+    
+    // Predicción de próxima sesión
+    val sessionPrediction: StateFlow<com.gymcompanion.app.domain.usecase.SessionPrediction?> = 
+        workoutSessionRepository.getRecentSessions(10)
+            .map { sessions ->
+                if (sessions.size >= 3) {
+                    trendAnalyzer.predictNextSession(sessions)
+                } else null
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
+    
     /**
      * Migrates existing routines to populate daysOfWeek field
      * Extracts day from routine name (e.g., "Pull - Viernes" -> "Viernes")
@@ -197,6 +305,24 @@ class HomeViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             // Silently fail - migration is best effort
+        }
+    }
+    
+    /**
+     * Refresca los datos de la pantalla Home
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                // Simular un pequeño delay para mejor UX
+                kotlinx.coroutines.delay(500)
+                // Los flows se actualizarán automáticamente
+                // No necesitamos hacer nada más porque los StateFlows
+                // están conectados a los repositorios que observan la DB
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
 }

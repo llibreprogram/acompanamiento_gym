@@ -39,12 +39,12 @@ Verás una o más rutas como esta:
 `/home/usuario/.gradle/caches/transforms-3/.../transformed/aapt2-8.2.0-10154469-linux/aapt2`
 
 #### 2. Descargar el binario compatible (ARM64)
-Utilizamos una versión compilada por la comunidad (gracias al repositorio `thejunkjon/android-tools`).
+Utilizamos una versión compilada por la comunidad (gracias al repositorio `JonForShort/android-tools`).
 
-Descarga el binario `android-11.0.0_r33` (compatible con versiones recientes del plugin de Android):
+Descarga el binario `android-11.0.0_r33` para ARM64 (más compatible con versiones recientes):
 
 ```bash
-wget https://github.com/thejunkjon/android-tools/raw/master/android-11.0.0_r33/aapt2 -O aapt2_arm64
+wget https://raw.githubusercontent.com/JonForShort/android-tools/master/build/android-11.0.0_r33/aapt2/arm64-v8a/bin/aapt2 -O aapt2_arm64
 ```
 
 #### 3. Reemplazar el archivo

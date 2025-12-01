@@ -132,6 +132,9 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.hilt:hilt-work:1.1.0")
     ksp("androidx.hilt:hilt-compiler:1.1.0")
+    
+    // Health Connect for fitness data integration
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha07")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

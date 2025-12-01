@@ -8,6 +8,9 @@ import com.gymcompanion.app.domain.repository.BodyMetricsRepository
 import com.gymcompanion.app.domain.repository.WorkoutSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -50,9 +53,28 @@ class ProgressViewModel @Inject constructor(
             initialValue = emptyList()
         )
     
-    // Estadísticas totales
+    // Estadísticas totales (incluyendo racha)
     val totalStats: StateFlow<TotalStats> = allSessions.map { sessions ->
         val completedSessions = sessions.filter { it.endTime != null }
+        
+        // Calculate current streak
+        val sessionDates = completedSessions
+            .map { Instant.ofEpochMilli(it.startTime).atZone(ZoneId.systemDefault()).toLocalDate() }
+            .distinct()
+            .sortedDescending()
+        
+        var currentStreak = 0
+        var checkDate = LocalDate.now()
+        for (date in sessionDates) {
+            val daysDiff = java.time.temporal.ChronoUnit.DAYS.between(date, checkDate)
+            if (daysDiff <= 1) {
+                currentStreak++
+                checkDate = date
+            } else {
+                break
+            }
+        }
+        
         TotalStats(
             totalWorkouts = completedSessions.size,
             totalVolume = completedSessions.sumOf { it.totalVolume },
@@ -60,12 +82,13 @@ class ProgressViewModel @Inject constructor(
                 if (session.endTime != null) {
                     (session.endTime!! - session.startTime) / 1000
                 } else 0L
-            }
+            },
+            currentStreak = currentStreak
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = TotalStats(0, 0.0, 0L)
+        initialValue = TotalStats(0, 0.0, 0L, 0)
     )
     
     /**
@@ -161,7 +184,8 @@ class ProgressViewModel @Inject constructor(
 data class TotalStats(
     val totalWorkouts: Int,
     val totalVolume: Double,
-    val totalTime: Long
+    val totalTime: Long,
+    val currentStreak: Int = 0
 )
 
 /**

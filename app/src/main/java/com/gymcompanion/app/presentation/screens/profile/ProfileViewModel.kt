@@ -18,7 +18,8 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val bodyMetricsRepository: BodyMetricsRepository,
-    private val userPreferencesRepository: com.gymcompanion.app.domain.repository.UserPreferencesRepository
+    private val userPreferencesRepository: com.gymcompanion.app.domain.repository.UserPreferencesRepository,
+    private val trainingPhaseDao: com.gymcompanion.app.data.local.dao.TrainingPhaseDao
 ) : ViewModel() {
     
     // Estado del usuario actual
@@ -49,6 +50,21 @@ class ProfileViewModel @Inject constructor(
         .flatMapLatest { user ->
             if (user != null) {
                 userPreferencesRepository.getPreferences(user.id)
+            } else {
+                flowOf(null)
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    // Fase de entrenamiento actual
+    val currentPhase = currentUser
+        .flatMapLatest { user ->
+            if (user != null) {
+                trainingPhaseDao.getCurrentPhase(user.id)
             } else {
                 flowOf(null)
             }
@@ -111,6 +127,7 @@ class ProfileViewModel @Inject constructor(
         weight: Double,
         height: Double,
         experienceLevel: String,
+        activityLevel: String,
         bodyFatPercentage: Double?,
         chestMeasurement: Double?,
         waistMeasurement: Double?,
@@ -133,6 +150,7 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         gender = gender,
                         dateOfBirth = dateOfBirth,
+                        activityLevel = activityLevel,
                         updatedAt = System.currentTimeMillis()
                     )
                     userRepository.updateUser(updatedUser)
@@ -143,7 +161,8 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         email = null,
                         dateOfBirth = dateOfBirth,
-                        gender = gender
+                        gender = gender,
+                        activityLevel = activityLevel
                     )
                     userId = userRepository.insertUser(newUser)
                 }
@@ -230,7 +249,7 @@ class ProfileViewModel @Inject constructor(
     /**
      * Actualiza todos los datos personales del usuario a la vez
      */
-    fun updateUserData(name: String, gender: String, dateOfBirth: Long) {
+    fun updateUserData(name: String, gender: String, dateOfBirth: Long, activityLevel: String) {
         viewModelScope.launch {
             try {
                 val user = currentUser.value
@@ -240,6 +259,7 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         gender = gender,
                         dateOfBirth = dateOfBirth,
+                        activityLevel = activityLevel,
                         updatedAt = System.currentTimeMillis()
                     )
                     userRepository.updateUser(updatedUser)
@@ -249,7 +269,8 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         email = null,
                         dateOfBirth = dateOfBirth,
-                        gender = gender
+                        gender = gender,
+                        activityLevel = activityLevel
                     )
                     userRepository.insertUser(newUser)
                 }
@@ -337,6 +358,22 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             currentUser.value?.let { user ->
                 userPreferencesRepository.updateDistanceUnit(user.id, unit)
+            }
+        }
+    }
+
+    /**
+     * Actualiza la fase de entrenamiento actual
+     */
+    fun updatePhase(phaseName: String) {
+        viewModelScope.launch {
+            currentUser.value?.let { user ->
+                trainingPhaseDao.insertPhase(
+                    com.gymcompanion.app.data.local.entity.TrainingPhaseEntity(
+                        userId = user.id,
+                        phaseName = phaseName
+                    )
+                )
             }
         }
     }

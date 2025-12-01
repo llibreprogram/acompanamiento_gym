@@ -151,6 +151,14 @@ fun ProfileScreen(
                         else -> "No especificado"
                     })
                     MetricRow("Edad", "${currentUser?.calculateAge() ?: "--"} años")
+                    MetricRow("Actividad", when(currentUser?.activityLevel) {
+                        "sedentary" -> "Sedentario"
+                        "light" -> "Ligero"
+                        "moderate" -> "Moderado"
+                        "active" -> "Activo"
+                        "very_active" -> "Muy Activo"
+                        else -> "No especificado"
+                    })
                     
                     // Métricas corporales
                     latestMetrics?.let { metrics ->
@@ -187,6 +195,64 @@ fun ProfileScreen(
                         MetricRow("IMC", "--")
                         MetricRow("% Grasa", "-- %")
                         MetricRow("Nivel", "No especificado")
+                    }
+                }
+            }
+
+            // Periodization Card
+            val currentPhase by viewModel.currentPhase.collectAsState()
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "🏋️ Fase de Entrenamiento",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "La IA ajustará tus rutinas según la fase seleccionada.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val phases = listOf(
+                        "Hypertrophy" to "Hipertrofia (8-12 reps)",
+                        "Strength" to "Fuerza (3-5 reps)",
+                        "Power" to "Potencia (1-3 reps)",
+                        "Deload" to "Descarga (Recuperación)"
+                    )
+
+                    phases.forEach { (id, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = currentPhase?.phaseName == id || (currentPhase == null && id == "Hypertrophy"),
+                                onClick = { viewModel.updatePhase(id) },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
                     }
                 }
             }
@@ -359,10 +425,10 @@ fun ProfileScreen(
             currentMetrics = metrics,
             currentUser = user,
             onDismiss = { showBodyMetricsDialog = false },
-            onSaveComplete = { name, gender, dateOfBirth, weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes ->
+            onSaveComplete = { name, gender, dateOfBirth, weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, activityLevel, notes ->
                 viewModel.saveCompleteProfile(
                     name, gender, dateOfBirth,
-                    weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes
+                    weight, height, level, activityLevel, bodyFat, chest, waist, hips, thigh, arm, calf, notes
                 )
                 showBodyMetricsDialog = false
             }

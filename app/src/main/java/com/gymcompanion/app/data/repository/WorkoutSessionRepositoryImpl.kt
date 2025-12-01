@@ -63,6 +63,33 @@ class WorkoutSessionRepositoryImpl @Inject constructor(
         return workoutDao.getWorkoutSessionsInDateRange(1L, startOfWeek, endOfWeek)
     }
     
+    override fun getSessionsLastWeek(): Flow<List<WorkoutSessionEntity>> {
+        val calendar = Calendar.getInstance()
+        // Ir a la semana pasada
+        calendar.add(Calendar.WEEK_OF_YEAR, -1)
+        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfLastWeek = calendar.timeInMillis
+        
+        calendar.add(Calendar.WEEK_OF_YEAR, 1)
+        val endOfLastWeek = calendar.timeInMillis
+        
+        return workoutDao.getWorkoutSessionsInDateRange(1L, startOfLastWeek, endOfLastWeek)
+    }
+    
+    override fun getRecentSessions(days: Int): Flow<List<WorkoutSessionEntity>> {
+        val calendar = Calendar.getInstance()
+        val endDate = calendar.timeInMillis
+        
+        calendar.add(Calendar.DAY_OF_YEAR, -days)
+        val startDate = calendar.timeInMillis
+        
+        return workoutDao.getWorkoutSessionsInDateRange(1L, startDate, endDate)
+    }
+    
     override suspend fun insertSession(session: WorkoutSessionEntity): Long {
         return workoutDao.insertWorkoutSession(session)
     }

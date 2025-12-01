@@ -157,25 +157,39 @@ fun TotalStatsCards(
     totalStats: TotalStats,
     viewModel: ProgressViewModel
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        StatCard(
-            title = "Entrenamientos",
-            value = totalStats.totalWorkouts.toString(),
-            modifier = Modifier.weight(1f)
-        )
-        StatCard(
-            title = "Volumen Total",
-            value = viewModel.formatVolume(totalStats.totalVolume),
-            modifier = Modifier.weight(1f)
-        )
-        StatCard(
-            title = "Tiempo Total",
-            value = viewModel.formatTime(totalStats.totalTime),
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatCard(
+                title = "Entrenamientos",
+                value = totalStats.totalWorkouts.toString(),
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = "Racha Actual",
+                value = "${totalStats.currentStreak} días",
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatCard(
+                title = "Volumen Total",
+                value = viewModel.formatVolume(totalStats.totalVolume),
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = "Tiempo Total",
+                value = viewModel.formatTime(totalStats.totalTime),
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 

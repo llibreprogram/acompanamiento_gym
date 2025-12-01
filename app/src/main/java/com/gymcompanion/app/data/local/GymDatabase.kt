@@ -18,9 +18,10 @@ import com.gymcompanion.app.data.local.entity.*
         RoutineExerciseEntity::class,
         WorkoutSessionEntity::class,
         ExerciseSetEntity::class,
-        UserPreferencesEntity::class
+        UserPreferencesEntity::class,
+        TrainingPhaseEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = true
 )
 abstract class GymDatabase : RoomDatabase() {
@@ -31,6 +32,7 @@ abstract class GymDatabase : RoomDatabase() {
     abstract fun routineDao(): RoutineDao
     abstract fun workoutDao(): WorkoutDao
     abstract fun userPreferencesDao(): UserPreferencesDao
+    abstract fun trainingPhaseDao(): TrainingPhaseDao
     
     companion object {
         const val DATABASE_NAME = "gym_companion_db"

@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gymcompanion.app.data.local.entity.ExerciseSetEntity
+import com.gymcompanion.app.presentation.screens.workout.components.FocusModeSession
+import com.gymcompanion.app.presentation.screens.workout.components.RestTimerOverlay
 
 /**
  * Pantalla de sesión de entrenamiento activa
@@ -37,14 +39,24 @@ fun WorkoutScreen(
     val sessionSets by viewModel.sessionSets.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     
+    val snackbarHostState = remember { SnackbarHostState() }
+    
     var showCompleteDialog by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
     var showSetDialog by remember { mutableStateOf(false) }
     var selectedExerciseId by remember { mutableStateOf<Long?>(null) }
+    var isFocusMode by remember { mutableStateOf(true) }
     
     // Iniciar sesión al cargar
     LaunchedEffect(routineId) {
         viewModel.startWorkoutSession(routineId)
+    }
+    
+    // Observar feedback de RPE
+    LaunchedEffect(Unit) {
+        viewModel.rpeFeedback.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
     }
     
     // Manejar estados finales
@@ -57,6 +69,7 @@ fun WorkoutScreen(
     }
     
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -78,6 +91,12 @@ fun WorkoutScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { isFocusMode = !isFocusMode }) {
+                        Icon(
+                            if (isFocusMode) Icons.Default.List else Icons.Default.ViewCarousel,
+                            contentDescription = "Cambiar vista"
+                        )
+                    }
                     IconButton(onClick = { showCompleteDialog = true }) {
                         Icon(Icons.Default.Check, "Finalizar")
                     }
@@ -90,74 +109,115 @@ fun WorkoutScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Timer de descanso
-            AnimatedVisibility(visible = isResting) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Descanso",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = viewModel.formatTime(restTimerSeconds.toLong()),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        TextButton(onClick = { viewModel.skipRest() }) {
-                            Text("Saltar descanso")
-                        }
-                    }
-                }
-            }
-            
-            // Lista de ejercicios
-            routine?.let { routineWithExercises ->
-                if (routineWithExercises.routineExercises.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(routineWithExercises.routineExercises) { routineExerciseWithExercise ->
-                            val exercise = routineExerciseWithExercise.exercise
-                            val routineExercise = routineExerciseWithExercise.routineExercise
+            // Contenido principal
+            if (isFocusMode) {
+                routine?.let { routineWithExercises ->
+                    if (routineWithExercises.routineExercises.isNotEmpty()) {
+                        val currentExercise = routineWithExercises.routineExercises.getOrNull(currentExerciseIndex)
+                        currentExercise?.let { exerciseWithDetails ->
+                            val exercise = exerciseWithDetails.exercise
+                            val routineExercise = exerciseWithDetails.routineExercise
                             val sets = viewModel.getSetsForExercise(exercise.id)
-                            val isCurrentExercise = routineWithExercises.routineExercises.indexOf(routineExerciseWithExercise) == currentExerciseIndex
                             
-                            ExerciseWorkoutCard(
-                                exerciseName = exercise.name,
-                                targetSets = routineExercise.plannedSets,
-                                targetReps = routineExercise.plannedReps,
+                            FocusModeSession(
+                                exercise = exercise,
+                                routineExercise = routineExercise,
+                                currentSetNumber = sets.size + 1,
                                 completedSets = sets,
-                                isCurrentExercise = isCurrentExercise,
-                                onAddSet = {
-                                    selectedExerciseId = exercise.id
-                                    showSetDialog = true
+                                plateCalculator = viewModel.plateCalculator,
+                                onLogSet = { weight, reps, rir, rpe ->
+                                    viewModel.logSet(exercise.id, sets.size + 1, weight, reps, rir, rpe)
                                 },
-                                onDeleteSet = { set ->
-                                    viewModel.deleteSet(set)
-                                }
+                                onDeleteSet = { set -> viewModel.deleteSet(set) },
+                                onNextExercise = { viewModel.nextExercise() },
+                                onPrevExercise = { viewModel.previousExercise() },
+                                hasNext = currentExerciseIndex < routineWithExercises.routineExercises.size - 1,
+                                hasPrev = currentExerciseIndex > 0
                             )
                         }
                     }
                 }
+            } else {
+                // Timer de descanso (Legacy view)
+                AnimatedVisibility(visible = isResting) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Descanso",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = viewModel.formatTime(restTimerSeconds.toLong()),
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            TextButton(onClick = { viewModel.skipRest() }) {
+                                Text("Saltar descanso")
+                            }
+                        }
+                    }
+                }
+                
+                // Lista de ejercicios (Legacy view)
+                routine?.let { routineWithExercises ->
+                    if (routineWithExercises.routineExercises.isNotEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .weight(1f),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(routineWithExercises.routineExercises) { routineExerciseWithExercise ->
+                                val exercise = routineExerciseWithExercise.exercise
+                                val routineExercise = routineExerciseWithExercise.routineExercise
+                                val sets = viewModel.getSetsForExercise(exercise.id)
+                                val isCurrentExercise = routineWithExercises.routineExercises.indexOf(routineExerciseWithExercise) == currentExerciseIndex
+                                
+                                ExerciseWorkoutCard(
+                                    exerciseName = exercise.name,
+                                    targetSets = routineExercise.plannedSets,
+                                    targetReps = routineExercise.plannedReps,
+                                    completedSets = sets,
+                                    isCurrentExercise = isCurrentExercise,
+                                    onAddSet = {
+                                        selectedExerciseId = exercise.id
+                                        showSetDialog = true
+                                    },
+                                    onDeleteSet = { set ->
+                                        viewModel.deleteSet(set)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
+        }
+        
+        // Overlay de descanso (Solo en Focus Mode)
+        if (isFocusMode && isResting) {
+            RestTimerOverlay(
+                secondsRemaining = restTimerSeconds,
+                totalSeconds = viewModel.restTimerTotalSeconds.collectAsState().value,
+                onSkip = { viewModel.skipRest() },
+                onAdd30s = { viewModel.addRestTime(30) },
+                voiceCoach = viewModel.voiceCoach
+            )
         }
         
         // Diálogo para agregar set
@@ -166,8 +226,8 @@ fun WorkoutScreen(
                 exerciseId = selectedExerciseId!!,
                 setNumber = viewModel.getSetsForExercise(selectedExerciseId!!).size + 1,
                 onDismiss = { showSetDialog = false },
-                onConfirm = { weight, reps, rir ->
-                    viewModel.logSet(selectedExerciseId!!, viewModel.getSetsForExercise(selectedExerciseId!!).size + 1, weight, reps, rir)
+                onConfirm = { weight, reps, rir, rpe ->
+                    viewModel.logSet(selectedExerciseId!!, viewModel.getSetsForExercise(selectedExerciseId!!).size + 1, weight, reps, rir, rpe)
                     showSetDialog = false
                 }
             )
@@ -307,7 +367,7 @@ fun ExerciseWorkoutCard(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "${set.weightUsed ?: "—"}kg × ${set.repsCompleted} reps${if (set.rir != null) " (RIR ${set.rir})" else ""}",
+                                text = "${set.weightUsed ?: "—"}kg × ${set.repsCompleted} reps${if (set.rir != null) " (RIR ${set.rir})" else ""}${if (set.rpe != null) " (RPE ${set.rpe})" else ""}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             IconButton(
@@ -349,11 +409,12 @@ fun AddSetDialog(
     exerciseId: Long,
     setNumber: Int,
     onDismiss: () -> Unit,
-    onConfirm: (Double?, Int?, Int?) -> Unit
+    onConfirm: (Double?, Int?, Int?, Int?) -> Unit
 ) {
     var weight by remember { mutableStateOf("") }
     var reps by remember { mutableStateOf("") }
     var rir by remember { mutableStateOf("") }
+    var rpe by remember { mutableStateOf(8f) } // Default RPE 8
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -381,6 +442,27 @@ fun AddSetDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+                
+                // RPE Slider
+                Column {
+                    Text(
+                        text = "Esfuerzo (RPE): ${rpe.toInt()}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = rpe,
+                        onValueChange = { rpe = it },
+                        valueRange = 1f..10f,
+                        steps = 8
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Fácil", style = MaterialTheme.typography.bodySmall)
+                        Text("Fallo", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
         },
         confirmButton = {
@@ -389,7 +471,8 @@ fun AddSetDialog(
                     onConfirm(
                         weight.toDoubleOrNull(),
                         reps.toIntOrNull(),
-                        rir.toIntOrNull()
+                        rir.toIntOrNull(),
+                        rpe.toInt()
                     )
                 }
             ) {

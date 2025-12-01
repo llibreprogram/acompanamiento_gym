@@ -24,7 +24,8 @@ class RoutineGeneratorUseCase @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
     private val routineRepository: RoutineRepository,
     private val smartAnalyzer: SmartExerciseAnalyzer,
-    private val progressAnalyzer: ProgressAnalyzer
+    private val progressAnalyzer: ProgressAnalyzer,
+    private val periodizationManager: PeriodizationManager
 ) {
     
     /**
@@ -51,8 +52,6 @@ class RoutineGeneratorUseCase @Inject constructor(
             // 5. Filtrar por edad, peso, altura si aplica (puedes agregar lógica específica)
             experienceMatch && genderMatch && restrictionMatch && preferenceMatch
         }
-
-
 
         // Usar filteredExercises en vez de allExercises para la generación
         return when (request.daysPerWeek) {
@@ -413,7 +412,7 @@ class RoutineGeneratorUseCase @Inject constructor(
         // Final deduplication just in case
         return selected.distinctBy { it.name.trim().lowercase() }.take(targetCount)
     }
-    
+
     /**
      * Crea la rutina y sus ejercicios con sets/reps óptimos
      */
@@ -442,15 +441,32 @@ class RoutineGeneratorUseCase @Inject constructor(
             )
         )
         
+        // Obtener fase de periodización actual
+        val currentPhase = periodizationManager.getCurrentPhase(userId).first()
+        val volumeSettings = currentPhase?.let { periodizationManager.getVolumeForPhase(it.phaseName) }
+        
         // Agregar ejercicios con parámetros optimizados
         exercises.forEachIndexed { index, exercise ->
-            val (sets, reps) = calculateOptimalVolume(goal, level, exercise.exerciseType)
+            val (defaultSets, defaultReps) = calculateOptimalVolume(goal, level, exercise.exerciseType)
+            
+            // Aplicar periodización si existe
+            val finalSets = volumeSettings?.sets ?: defaultSets
+            val finalReps = volumeSettings?.reps ?: "$defaultReps"
+            val finalRest = volumeSettings?.restSeconds ?: calculateRestTime(goal, exercise.exerciseType, level)
             
             // SUGERENCIA INTELIGENTE: Calcular peso sugerido
+            // Parsear el rango de reps para obtener un objetivo numérico (usamos el promedio)
+            val targetRepsInt = if (finalReps.contains("-")) {
+                val parts = finalReps.split("-")
+                (parts[0].toInt() + parts[1].toInt()) / 2
+            } else {
+                finalReps.toIntOrNull() ?: defaultReps
+            }
+
             val suggestedWeight = progressAnalyzer.suggestNextWeight(
                 exerciseId = exercise.id,
                 userId = userId,
-                targetReps = reps
+                targetReps = targetRepsInt
             )
             
             routineRepository.addExerciseToRoutine(
@@ -458,10 +474,10 @@ class RoutineGeneratorUseCase @Inject constructor(
                     routineId = routineId,
                     exerciseId = exercise.id,
                     orderIndex = index,
-                    plannedSets = sets,
-                    plannedReps = "$reps",
+                    plannedSets = finalSets,
+                    plannedReps = finalReps,
                     plannedWeight = if (suggestedWeight > 0) suggestedWeight else null,
-                    restTimeSeconds = calculateRestTime(goal, exercise.exerciseType, level)
+                    restTimeSeconds = finalRest
                 )
             )
         }

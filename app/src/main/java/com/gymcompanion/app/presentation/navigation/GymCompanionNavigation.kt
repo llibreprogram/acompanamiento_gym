@@ -63,6 +63,10 @@ fun GymCompanionNavigation() {
                     },
                     onNavigateToProgress = {
                         navController.navigate(Screen.Progress.route)
+                    },
+                    onNavigateToAnalytics = {
+                        // Navigate to Progress tab instead
+                        navController.navigate(Screen.Progress.route)
                     }
                 )
             }

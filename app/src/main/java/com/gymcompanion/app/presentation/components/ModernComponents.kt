@@ -196,7 +196,7 @@ fun ModernButton(
 }
 
 /**
- * Card con estadística animada
+ * Card con estadística animada y tendencia
  */
 @Composable
 fun StatCard(
@@ -209,7 +209,11 @@ fun StatCard(
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
     iconBackgroundColor: Color = MaterialTheme.colorScheme.primary,
     iconColor: Color = MaterialTheme.colorScheme.onPrimary,
-    animate: Boolean = true
+    animate: Boolean = true,
+    // Trend parameters
+    trendDirection: com.gymcompanion.app.domain.usecase.TrendDirection? = null,
+    trendPercentage: Double? = null,
+    showTrend: Boolean = true
 ) {
     var visible by remember { mutableStateOf(false) }
     
@@ -250,12 +254,59 @@ fun StatCard(
                         color = contentColor.copy(alpha = 0.8f)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
-                    )
+                    
+                    // Value with trend indicator
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Parse value for animation
+                        val numberRegex = "([0-9]+[.,]?[0-9]*)".toRegex()
+                        val match = numberRegex.find(value)
+                        
+                        if (animate && match != null) {
+                            val numberStr = match.value.replace(",", ".")
+                            val number = numberStr.toDoubleOrNull() ?: 0.0
+                            val suffix = value.substring(match.range.last + 1)
+                            val prefix = value.substring(0, match.range.first)
+                            
+                            val animatedNumber by animateFloatAsState(
+                                targetValue = if (visible) number.toFloat() else 0f,
+                                animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+                                label = "count_up"
+                            )
+                            
+                            val displayValue = if (number % 1.0 == 0.0) {
+                                "${animatedNumber.toInt()}"
+                            } else {
+                                String.format("%.1f", animatedNumber)
+                            }
+                            
+                            Text(
+                                text = "$prefix$displayValue$suffix",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor
+                            )
+                        } else {
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor
+                            )
+                        }
+                        
+                        // Trend indicator
+                        if (showTrend && trendDirection != null && trendPercentage != null) {
+                            TrendIndicator(
+                                direction = trendDirection,
+                                percentage = trendPercentage,
+                                contentColor = contentColor
+                            )
+                        }
+                    }
+                    
                     subtitle?.let {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -281,6 +332,75 @@ fun StatCard(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Indicador de tendencia con animación
+ */
+@Composable
+fun TrendIndicator(
+    direction: com.gymcompanion.app.domain.usecase.TrendDirection,
+    percentage: Double,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val (icon, color, text) = when (direction) {
+        com.gymcompanion.app.domain.usecase.TrendDirection.IMPROVING -> Triple(
+            Icons.Default.TrendingUp,
+            Color(0xFF4CAF50), // Green
+            "+${String.format("%.1f", kotlin.math.abs(percentage))}%"
+        )
+        com.gymcompanion.app.domain.usecase.TrendDirection.DECLINING -> Triple(
+            Icons.Default.TrendingDown,
+            Color(0xFFF44336), // Red
+            "${String.format("%.1f", percentage)}%"
+        )
+        com.gymcompanion.app.domain.usecase.TrendDirection.STABLE -> Triple(
+            Icons.Default.TrendingFlat,
+            contentColor.copy(alpha = 0.6f),
+            "0%"
+        )
+    }
+    
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(300)
+        visible = true
+    }
+    
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(400)) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        ),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(color.copy(alpha = 0.15f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
         }
     }
 }
@@ -709,22 +829,12 @@ fun WorkoutStreakCalendar(
 
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(32.dp)
                         .scale(scale)
-                        .clip(RoundedCornerShape(8.dp))
-                        .then(
-                            if (completed) {
-                                Modifier.background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.secondary
-                                        )
-                                    )
-                                )
-                            } else {
-                                Modifier.background(color = MaterialTheme.colorScheme.surfaceVariant)
-                            }
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            if (completed) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -732,7 +842,7 @@ fun WorkoutStreakCalendar(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
@@ -1268,5 +1378,36 @@ fun GoalProgressItem(
             color = color,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
+    }
+}
+
+/**
+ * Contenedor para animación escalonada de entrada
+ */
+@Composable
+fun StaggeredEntrance(
+    index: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(index * 100L)
+        visible = true
+    }
+    
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(500)) + slideInVertically(
+            initialOffsetY = { 50 },
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        ),
+        modifier = modifier
+    ) {
+        content()
     }
 }
