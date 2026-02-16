@@ -80,7 +80,7 @@ fun InteractiveChart(
                 val (label, value) = dataPoints[selectedIndex!!]
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "${value.toInt()} kg",
+                        text = "${value.toInt()} lbs",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = lineColor

@@ -2,7 +2,6 @@
 
 package com.gymcompanion.app.presentation.screens.routines
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,16 +10,20 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
-import coil.compose.SubcomposeAsyncImage
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.gymcompanion.app.data.local.entity.ExerciseEntity
+import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
+import com.gymcompanion.app.data.local.entity.RoutineExerciseWithExercise
 
 /**
  * Pantalla de detalle de rutina
@@ -34,9 +37,6 @@ fun RoutineDetailScreen(
 ) {
     val allRoutines by viewModel.allRoutines.collectAsState()
     val routine = allRoutines.find { it.routine.id == routineId }
-    
-    // State for image zoom dialog
-    var zoomedImageUrl by remember { mutableStateOf<String?>(null) }
     
     Scaffold(
         topBar = {
@@ -66,6 +66,9 @@ fun RoutineDetailScreen(
                 CircularProgressIndicator()
             }
         } else {
+            var showSwapDialog by remember { mutableStateOf<RoutineExerciseWithExercise?>(null) }
+            val alternatives by viewModel.alternativeExercises.collectAsState()
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -73,7 +76,7 @@ fun RoutineDetailScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Header info
+                // ... (existing items)
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -130,11 +133,14 @@ fun RoutineDetailScreen(
                     ExerciseItemCard(
                         routineExercise = routineExercise,
                         position = routine.routineExercises.indexOf(routineExercise) + 1,
-                        onImageClick = { imageUrl -> zoomedImageUrl = imageUrl }
+                        onSwapClick = {
+                            viewModel.loadAlternativesForExercise(routineExercise.exercise)
+                            showSwapDialog = routineExercise
+                        }
                     )
                 }
                 
-                // AI Generated badge
+                // AI Generated badge (moved inside else to avoid duplication if I'm not careful)
                 if (routine.routine.isAIGenerated) {
                     item {
                         Card(
@@ -163,30 +169,75 @@ fun RoutineDetailScreen(
                     }
                 }
             }
-        }
-    }
-    
-    // Image zoom dialog
-    if (zoomedImageUrl != null) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = { zoomedImageUrl = null }
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.9f))
-                    .clickable { zoomedImageUrl = null },
-                contentAlignment = Alignment.Center
-            ) {
-                SubcomposeAsyncImage(
-                    model = zoomedImageUrl,
-                    contentDescription = "Imagen ampliada",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                    loading = {
-                        CircularProgressIndicator(color = Color.White)
+
+            // Dialogo para cambiar ejercicio
+            if (showSwapDialog != null) {
+                AlertDialog(
+                    onDismissRequest = { showSwapDialog = null },
+                    title = { Text("Cambiar ejercicio") },
+                    text = {
+                        Column {
+                            Text(
+                                "Selecciona una alternativa para: ${showSwapDialog?.exercise?.name}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            if (alternatives.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Buscando alternativas...")
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.heightIn(max = 400.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(alternatives) { alternative ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            onClick = {
+                                                viewModel.replaceExerciseInRoutine(
+                                                    showSwapDialog!!.routineExercise,
+                                                    alternative
+                                                )
+                                                showSwapDialog = null
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        alternative.name,
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                    Text(
+                                                        alternative.equipmentNeeded,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.secondary
+                                                    )
+                                                }
+                                                Icon(
+                                                    Icons.Default.Sync,
+                                                    contentDescription = "Seleccionar",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showSwapDialog = null }) {
+                            Text("Cancelar")
+                        }
                     }
                 )
             }
@@ -198,253 +249,157 @@ fun RoutineDetailScreen(
 fun ExerciseItemCard(
     routineExercise: com.gymcompanion.app.data.local.entity.RoutineExerciseWithExercise,
     position: Int,
-    onImageClick: (String) -> Unit = {}
+    onSwapClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
+            // Position number
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primary
             ) {
-                // Position number
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.primary
+                Box(
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$position",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                    Text(
+                        text = "$position",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-                
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                // Exercise images (both start and end positions)
-                if (routineExercise.exercise.illustrationPath?.isNotBlank() == true) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        // First image (start position)
-                        Box(
-                            modifier = Modifier
-                                .size(70.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { 
-                                    routineExercise.exercise.illustrationPath?.let { onImageClick(it) }
-                                }
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            SubcomposeAsyncImage(
-                                model = routineExercise.exercise.illustrationPath,
-                                contentDescription = "${routineExercise.exercise.name} - Inicio",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                loading = {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                },
-                                error = {
-                                    Text(
-                                        text = "🏋️",
-                                        style = MaterialTheme.typography.headlineMedium
-                                    )
-                                }
-                            )
-                        }
-                        
-                        // Second image (end position) if available
-                        if (routineExercise.exercise.illustrationPath2?.isNotBlank() == true) {
-                            Box(
-                                modifier = Modifier
-                                    .size(70.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { 
-                                        routineExercise.exercise.illustrationPath2?.let { onImageClick(it) }
-                                    }
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                SubcomposeAsyncImage(
-                                    model = routineExercise.exercise.illustrationPath2,
-                                    contentDescription = "${routineExercise.exercise.name} - Final",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                    loading = {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            strokeWidth = 2.dp
-                                        )
-                                    },
-                                    error = {
-                                        Text(
-                                            text = "🏋️",
-                                            style = MaterialTheme.typography.headlineMedium
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                
-                // Exercise info
-                Column(
-                    modifier = Modifier.weight(1f)
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Thumbnail
+            if (!routineExercise.exercise.illustrationPath.isNullOrBlank()) {
+                AsyncImage(
+                    model = routineExercise.exercise.illustrationPath,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            } else {
+                 // Fallback if no image, maybe show the number in a nicer way or just keep the spacer
+            }
+            
+            // Exercise info
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = routineExercise.exercise.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    
+                    IconButton(onClick = onSwapClick) {
+                        Icon(
+                            Icons.Default.Sync,
+                            contentDescription = "Cambiar ejercicio",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                
+                // Description
+                if (!routineExercise.exercise.description.isNullOrBlank()) {
+                    Text(
+                        text = routineExercise.exercise.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Series and reps
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Series and reps
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "🔢 ${routineExercise.routineExercise.plannedSets} series",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "🔁 ${routineExercise.routineExercise.plannedReps} reps",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (routineExercise.routineExercise.restTimeSeconds > 0) {
                         Text(
-                            text = "🔢 ${routineExercise.routineExercise.plannedSets} series",
+                            text = "⏸️ ${routineExercise.routineExercise.restTimeSeconds}s",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            text = "🔁 ${routineExercise.routineExercise.plannedReps} reps",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (routineExercise.routineExercise.restTimeSeconds > 0) {
-                            Text(
-                                text = "⏸️ ${routineExercise.routineExercise.restTimeSeconds}s",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Muscle groups and equipment
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Muscle groups and equipment
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AssistChip(
+                        onClick = { },
+                        label = { 
+                            Text(
+                                routineExercise.exercise.muscleGroup,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (routineExercise.exercise.equipmentNeeded.isNotBlank()) {
                         AssistChip(
                             onClick = { },
                             label = { 
                                 Text(
-                                    routineExercise.exercise.muscleGroup,
-                                    style = MaterialTheme.typography.bodySmall
+                                    routineExercise.exercise.equipmentNeeded,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             },
                             colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            )
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            ),
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        if (routineExercise.exercise.equipmentNeeded.isNotBlank()) {
-                            AssistChip(
-                                onClick = { },
-                                label = { 
-                                    Text(
-                                        routineExercise.exercise.equipmentNeeded,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // Exercise tips/recommendations
-            if (routineExercise.exercise.instructionsSteps.isNotBlank() && 
-                routineExercise.exercise.instructionsSteps != "[]") {
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                val instructions = try {
-                    val gson = com.google.gson.Gson()
-                    val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
-                    gson.fromJson<List<String>>(routineExercise.exercise.instructionsSteps, type)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                
-                if (instructions.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "💡",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Cómo hacer este ejercicio:",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            // Show first 3 instructions
-                            instructions.take(3).forEachIndexed { index, instruction ->
-                                Row(
-                                    modifier = Modifier.padding(vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "${index + 1}. ",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = instruction,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                            
-                            if (instructions.size > 3) {
-                                Text(
-                                    text = "... y ${instructions.size - 3} pasos más",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                        }
                     }
                 }
             }

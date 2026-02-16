@@ -142,10 +142,18 @@ class WorkoutSessionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getExerciseHistory(userId: Long, exerciseId: Long, limit: Int): List<WorkoutSessionWithSets> {
-        val sessions = workoutDao.getSessionsByExercise(exerciseId, limit).first()
-        return sessions.map { session ->
-            val sets = workoutDao.getSetsForWorkoutSession(session.id).first()
-            WorkoutSessionWithSets(session, sets)
+        // Get recent sets for this exercise to find which sessions contain it
+        val recentSets = workoutDao.getRecentSetsForExercise(exerciseId, limit * 5).first()
+        
+        // Get unique session IDs (ordered by most recent)
+        val sessionIds = recentSets.map { it.workoutSessionId }.distinct().take(limit)
+        
+        return sessionIds.mapNotNull { sessionId ->
+            val session = workoutDao.getWorkoutSessionById(sessionId).first()
+            session?.let {
+                val sets = workoutDao.getSetsForWorkoutSession(sessionId).first()
+                WorkoutSessionWithSets(it, sets)
+            }
         }
     }
 }

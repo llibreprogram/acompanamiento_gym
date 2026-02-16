@@ -1,9 +1,11 @@
 package com.gymcompanion.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+
 
 /**
  * Entidad de relación entre rutina y ejercicio
@@ -42,7 +44,7 @@ data class RoutineExerciseEntity(
     // Parámetros planificados
     val plannedSets: Int,
     val plannedReps: String, // Puede ser "12" o "8-12" para rangos
-    val plannedWeight: Double? = null, // en kg, null para peso corporal
+    val plannedWeight: Double? = null, // en lbs, null para peso corporal
     val restTimeSeconds: Int = 60, // Tiempo de descanso entre series
     
     // Notas específicas para este ejercicio en esta rutina

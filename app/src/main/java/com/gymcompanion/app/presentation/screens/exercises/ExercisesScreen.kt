@@ -1,30 +1,41 @@
 package com.gymcompanion.app.presentation.screens.exercises
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gymcompanion.app.data.local.entity.ExerciseEntity
+import com.gymcompanion.app.presentation.components.AnimatedEntrance
+import com.gymcompanion.app.presentation.components.GlassmorphicCard
+import com.gymcompanion.app.presentation.components.ModernBadge
+import com.gymcompanion.app.presentation.theme.*
 
 /**
- * Pantalla de Ejercicios - Muestra biblioteca de ejercicios
+ * 🏋️ EXERCISES SCREEN — Premium Dark Neon Design
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,34 +49,42 @@ fun ExercisesScreen(
     val filteredExercises by viewModel.filteredExercises.collectAsState()
     val muscleGroups by viewModel.muscleGroups.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    
+
     Scaffold(
+        containerColor = DarkBackground,
         topBar = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .background(DarkSurface.copy(alpha = 0.95f))
+                    .padding(bottom = 16.dp)
+            ) {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
-                            text = "Ejercicios",
-                            style = MaterialTheme.typography.headlineMedium
+                            text = "Biblioteca",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = Color.Transparent
                     )
                 )
-                
-                // Barra de búsqueda
+
+                // Search Bar
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Buscar ejercicios...") },
+                        .padding(horizontal = 16.dp),
+                    placeholder = { Text("Buscar ejercicios...", color = TextSecondary) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Buscar"
+                            contentDescription = "Buscar",
+                            tint = NeonBlue
                         )
                     },
                     trailingIcon = {
@@ -73,90 +92,102 @@ fun ExercisesScreen(
                             IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
-                                    contentDescription = "Limpiar búsqueda"
+                                    contentDescription = "Limpiar",
+                                    tint = TextSecondary
                                 )
                             }
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NeonBlue,
+                        unfocusedBorderColor = GlassBorder,
+                        focusedContainerColor = DarkSurfaceElevated,
+                        unfocusedContainerColor = DarkSurfaceElevated,
+                        cursorColor = NeonBlue,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    )
                 )
-                
-                // Filtros de grupo muscular
-                AnimatedVisibility(visible = muscleGroups.isNotEmpty()) {
+
+                // Muscle Group Filters
+                if (muscleGroups.isNotEmpty()) {
                     Column {
                         Text(
                             text = "Grupo Muscular",
                             style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold
                         )
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             item {
-                                FilterChip(
+                                NeonFilterChip(
                                     selected = selectedMuscleGroup == null,
                                     onClick = { viewModel.onMuscleGroupSelected(null) },
-                                    label = { Text("Todos") }
+                                    label = "Todos",
+                                    color = NeonBlue
                                 )
                             }
                             items(muscleGroups) { muscleGroup ->
-                                FilterChip(
+                                NeonFilterChip(
                                     selected = selectedMuscleGroup == muscleGroup,
                                     onClick = { 
                                         viewModel.onMuscleGroupSelected(
                                             if (selectedMuscleGroup == muscleGroup) null else muscleGroup
                                         )
                                     },
-                                    label = { Text(getMuscleGroupName(muscleGroup)) }
+                                    label = getMuscleGroupName(muscleGroup),
+                                    color = NeonBlue
                                 )
                             }
                         }
                     }
                 }
-                
-                // Filtros de dificultad
+
+                // Difficulty Filters
                 Column {
                     Text(
                         text = "Dificultad",
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Bold
                     )
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         item {
-                            FilterChip(
+                            NeonFilterChip(
                                 selected = selectedDifficulty == null,
                                 onClick = { viewModel.onDifficultySelected(null) },
-                                label = { Text("Todas") }
+                                label = "Todas",
+                                color = NeonPurple
                             )
                         }
                         items(listOf("beginner", "intermediate", "advanced")) { difficulty ->
-                            FilterChip(
+                            NeonFilterChip(
                                 selected = selectedDifficulty == difficulty,
                                 onClick = { 
                                     viewModel.onDifficultySelected(
                                         if (selectedDifficulty == difficulty) null else difficulty
                                     )
                                 },
-                                label = { Text(getDifficultyName(difficulty)) }
+                                label = getDifficultyName(difficulty),
+                                color = getDifficultyColor(difficulty)
                             )
                         }
                     }
                 }
-                
-                Divider()
             }
         }
     ) { paddingValues ->
-    when (uiState) {
+        when (uiState) {
             is ExercisesUiState.Loading -> {
                 Box(
                     modifier = Modifier
@@ -164,7 +195,7 @@ fun ExercisesScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = NeonBlue)
                 }
             }
             is ExercisesUiState.Empty -> {
@@ -176,74 +207,164 @@ fun ExercisesScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(32.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(NeonBlue.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = NeonBlue
+                            )
+                        }
                         Text(
-                            text = "No hay ejercicios",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "No se encontraron ejercicios",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "La base de datos se inicializará automáticamente",
+                            text = "Intenta ajustar los filtros o la búsqueda",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             is ExercisesUiState.Success -> {
-                if (filteredExercises.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Sin resultados",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "Prueba con otros filtros o búsqueda",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            TextButton(onClick = { viewModel.clearFilters() }) {
-                                Text("Limpiar filtros")
-                            }
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredExercises) { exercise ->
-                            ExerciseCard(
-                                exercise = exercise,
-                                onClick = { onExerciseClick(exercise.id) },
-                                muscleGroupColor = Color(viewModel.getMuscleGroupColor(exercise.muscleGroup))
-                            )
-                        }
-                    }
-                }
-            }
-            is ExercisesUiState.Error -> {
-                Box(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredExercises) { exercise ->
+                        AnimatedEntrance {
+                            ExerciseCard(
+                                exercise = exercise,
+                                onClick = { onExerciseClick(exercise.id) },
+                                muscleGroupColor = NeonBlue
+                            )
+                        }
+                    }
+                    // Spacer for bottom nav
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                }
+            }
+            is ExercisesUiState.Error -> {
+                // Handle error
+            }
+        }
+    }
+}
+
+@Composable
+fun NeonFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                if (selected) color.copy(alpha = 0.2f) else DarkSurfaceElevated
+            )
+            .border(
+                1.dp,
+                if (selected) color else GlassBorderSubtle,
+                RoundedCornerShape(20.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) color else TextSecondary,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+fun ExerciseCard(
+    exercise: ExerciseEntity,
+    onClick: () -> Unit,
+    muscleGroupColor: Color
+) {
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        showGlow = false
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagen/Icono
+            if (!exercise.illustrationPath.isNullOrBlank()) {
+                AsyncImage(
+                    model = exercise.illustrationPath,
+                    contentDescription = exercise.name,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurface),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurface),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = (uiState as ExercisesUiState.Error).message,
-                        color = MaterialTheme.colorScheme.error
+                        text = exercise.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = muscleGroupColor
+                    )
+                }
+            }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    ModernBadge(
+                        text = getMuscleGroupName(exercise.muscleGroup),
+                        containerColor = muscleGroupColor.copy(alpha = 0.15f),
+                        contentColor = muscleGroupColor
+                    )
+                    
+                    ModernBadge(
+                        text = getDifficultyName(exercise.difficulty),
+                        containerColor = getDifficultyColor(exercise.difficulty).copy(alpha = 0.15f),
+                        contentColor = getDifficultyColor(exercise.difficulty)
                     )
                 }
             }
@@ -251,124 +372,21 @@ fun ExercisesScreen(
     }
 }
 
-/**
- * Card de ejercicio individual
- */
-@Composable
-fun ExerciseCard(
-    exercise: ExerciseEntity,
-    onClick: () -> Unit,
-    muscleGroupColor: Color
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Nombre del ejercicio
-                Text(
-                    text = exercise.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                // Descripción
-                Text(
-                    text = exercise.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                // Tags
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    // Grupo muscular
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(muscleGroupColor.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = getMuscleGroupName(exercise.muscleGroup),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = muscleGroupColor
-                        )
-                    }
-                    
-                    // Dificultad
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(getDifficultyColor(exercise.difficulty).copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = getDifficultyName(exercise.difficulty),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = getDifficultyColor(exercise.difficulty)
-                        )
-                    }
-                    
-                    // Equipo necesario
-                    if (exercise.equipmentNeeded.isNotBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = exercise.equipmentNeeded,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Obtiene el nombre localizado del grupo muscular
- */
-private fun getMuscleGroupName(muscleGroup: String): String {
-    return when (muscleGroup) {
+// Helpers localizados (Mismo mapeo que antes pero en variables por simplicidad, o reutilizar funciones si son puras)
+fun getMuscleGroupName(muscleGroup: String): String {
+    return when (muscleGroup.lowercase()) {
         "chest" -> "Pecho"
         "back" -> "Espalda"
         "legs" -> "Piernas"
         "shoulders" -> "Hombros"
         "arms" -> "Brazos"
-        "core" -> "Core"
-        "full_body" -> "Cuerpo completo"
-        else -> muscleGroup
+        "core" -> "Abdominales"
+        else -> muscleGroup.replaceFirstChar { it.uppercase() }
     }
 }
 
-/**
- * Obtiene el nombre localizado de la dificultad
- */
-private fun getDifficultyName(difficulty: String): String {
-    return when (difficulty) {
+fun getDifficultyName(difficulty: String): String {
+    return when (difficulty.lowercase()) {
         "beginner" -> "Principiante"
         "intermediate" -> "Intermedio"
         "advanced" -> "Avanzado"
@@ -376,14 +394,11 @@ private fun getDifficultyName(difficulty: String): String {
     }
 }
 
-/**
- * Obtiene el color según la dificultad
- */
-private fun getDifficultyColor(difficulty: String): Color {
-    return when (difficulty) {
-        "beginner" -> Color(0xFF4CAF50)
-        "intermediate" -> Color(0xFFFF9800)
-        "advanced" -> Color(0xFFF44336)
-        else -> Color.Gray
+fun getDifficultyColor(difficulty: String): Color {
+    return when (difficulty.lowercase()) {
+        "beginner" -> NeonGreen
+        "intermediate" -> NeonOrange
+        "advanced" -> NeonPink
+        else -> NeonBlue
     }
 }

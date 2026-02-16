@@ -25,12 +25,7 @@ local.properties
 
 # Android Profiling
 *.hprof
-# Archivos grandes y temporales
-commandlinetools-linux-*.zip*
+
+# Large files
+*.zip
 *.core
-*.deb
-*.tar.zst
-debian-binary
-sdk/
-usr/
-etc/

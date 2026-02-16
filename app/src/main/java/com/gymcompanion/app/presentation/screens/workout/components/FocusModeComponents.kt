@@ -1,7 +1,9 @@
 package com.gymcompanion.app.presentation.screens.workout.components
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,13 +25,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.gymcompanion.app.data.local.entity.ExerciseEntity
 import com.gymcompanion.app.data.local.entity.ExerciseSetEntity
 import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
 import com.gymcompanion.app.domain.usecase.PlateCalculator
+import com.gymcompanion.app.presentation.components.*
+import com.gymcompanion.app.presentation.theme.*
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 /**
- * Sesión de entrenamiento en Modo Enfoque (Inmersivo)
+ * 🏋️ FOCUS MODE COMPONENTS — Premium Dark Neon Design
  */
 @Composable
 fun FocusModeSession(
@@ -44,14 +52,16 @@ fun FocusModeSession(
     onPrevExercise: () -> Unit,
     hasNext: Boolean,
     hasPrev: Boolean,
+    isNavigating: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var weight by remember { mutableStateOf("") }
     var reps by remember { mutableStateOf("") }
     var rpe by remember { mutableStateOf(8) }
-    
-    // Pre-fill with last set values if available, or routine targets
-    LaunchedEffect(exercise.id, completedSets.size) {
+    var showExerciseInfo by remember { mutableStateOf(false) }
+
+    // Pre-fill logic
+    LaunchedEffect(exercise.id) {
         if (completedSets.isNotEmpty()) {
             val lastSet = completedSets.last()
             weight = lastSet.weightUsed?.toString() ?: ""
@@ -59,99 +69,128 @@ fun FocusModeSession(
         }
     }
 
-    var energyLevel by remember { mutableStateOf("Normal") } // Normal, Tired, Very Tired
-    
+    LaunchedEffect(completedSets.lastOrNull()?.id) {
+        completedSets.lastOrNull()?.let { lastSet ->
+            weight = lastSet.weightUsed?.toString() ?: ""
+            reps = lastSet.repsCompleted.toString()
+        }
+    }
+
+    var energyLevel by remember { mutableStateOf("Normal") }
+
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(DarkBackground)
     ) {
-        // Fixed Header: Exercise Name & Target
+        // Neon Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = exercise.name,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            
-            // Energy Level Selector
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                IconButton(onClick = { showExerciseInfo = true }) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = "Ver instrucciones",
+                        tint = NeonBlue
+                    )
+                }
+            }
+
+            // Energy Level Selector (Neon Chips)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Energía:",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
                     modifier = Modifier.padding(end = 8.dp)
                 )
-                
-                AssistChip(
-                    onClick = { energyLevel = "Normal" },
-                    label = { Text("💪 Normal") },
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (energyLevel == "Normal") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
-                AssistChip(
-                    onClick = { energyLevel = "Tired" },
-                    label = { Text("😓 Cansado") },
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (energyLevel == "Tired") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
-                AssistChip(
-                    onClick = { energyLevel = "Very Tired" },
-                    label = { Text("😴 Muy Cansado") },
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (energyLevel == "Very Tired") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
+
+                listOf(
+                    "Normal" to "💪 Normal",
+                    "Tired" to "😓 Cansado",
+                    "Very Tired" to "😴 Muy Cansado"
+                ).forEach { (level, label) ->
+                    val isSelected = energyLevel == level
+                    val chipColor = when (level) {
+                        "Normal" -> NeonGreen
+                        "Tired" -> NeonOrange
+                        else -> NeonPink
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                if (isSelected) chipColor.copy(alpha = 0.2f) else DarkSurfaceElevated
+                            )
+                            .border(
+                                1.dp,
+                                if (isSelected) chipColor else Color.Transparent,
+                                RoundedCornerShape(20.dp)
+                            )
+                            .clickable { energyLevel = level }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) chipColor else TextSecondary
+                        )
+                    }
+                }
             }
-            
-            // Adjusted target based on energy level
+
+            // Target Text
             val adjustedSets = when (energyLevel) {
                 "Tired" -> (routineExercise.plannedSets.toDouble() * 0.8).toInt().coerceAtLeast(1)
                 "Very Tired" -> (routineExercise.plannedSets.toDouble() * 0.6).toInt().coerceAtLeast(1)
                 else -> routineExercise.plannedSets
             }
-            
             val adjustedReps = when (energyLevel) {
                 "Tired" -> (routineExercise.plannedReps.toDouble() * 0.9).toInt().coerceAtLeast(1)
                 "Very Tired" -> (routineExercise.plannedReps.toDouble() * 0.75).toInt().coerceAtLeast(1)
                 else -> routineExercise.plannedReps
             }
-            
+
             Text(
-                text = if (energyLevel != "Normal") {
-                    "Meta ajustada: $adjustedSets sets × $adjustedReps reps"
-                } else {
-                    "Meta: ${routineExercise.plannedSets} sets × ${routineExercise.plannedReps} reps"
-                },
+                text = if (energyLevel != "Normal") "Meta ajustada: $adjustedSets sets × $adjustedReps reps" else "Meta: ${routineExercise.plannedSets} sets × ${routineExercise.plannedReps} reps",
                 style = MaterialTheme.typography.titleMedium,
-                color = if (energyLevel != "Normal") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                fontWeight = FontWeight.Bold,
+                color = if (energyLevel != "Normal") NeonOrange else NeonBlue
             )
-            
+
             if (energyLevel != "Normal") {
                 Text(
                     text = when (energyLevel) {
-                        "Tired" -> "Reducción: -20% sets, -10% reps"
-                        "Very Tired" -> "Reducción: -40% sets, -25% reps"
+                        "Tired" -> "-20% sets, -10% reps"
+                        "Very Tired" -> "-40% sets, -25% reps"
                         else -> ""
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NeonOrange
                 )
             }
         }
@@ -163,35 +202,40 @@ fun FocusModeSession(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // History / Completed Sets
             if (completedSets.isNotEmpty()) {
-                Text(
-                    text = "Sets completados:",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                completedSets.forEach { set ->
-                    CompletedSetItem(set = set, onDelete = { onDeleteSet(set) })
+                GlassmorphicCard(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Sets completados",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary
+                        )
+                        completedSets.forEach { set ->
+                            CompletedSetItem(set = set, onDelete = { onDeleteSet(set) })
+                        }
+                    }
                 }
             }
 
-            // Input Area
-            Card(
+            // Input Area (Neon Gradient Card)
+            NeonGradientCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
+                gradientColors = GradientPrimary
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
                         text = "Set $currentSetNumber",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold,
+                        color = TextPrimary
                     )
 
                     Row(
@@ -201,69 +245,75 @@ fun FocusModeSession(
                         LargeSetInput(
                             value = weight,
                             onValueChange = { weight = it },
-                            label = "Peso (kg)",
+                            label = "LBS",
                             modifier = Modifier.weight(1f)
                         )
                         LargeSetInput(
                             value = reps,
                             onValueChange = { reps = it },
-                            label = "Reps",
+                            label = "REPS",
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    
-                    // Plate Calculator
+
                     PlateCalculatorView(
                         targetWeight = weight.toDoubleOrNull() ?: 0.0,
                         equipmentType = exercise.equipmentNeeded,
                         plateCalculator = plateCalculator
                     )
-                    
-                    // RPE Selector
-                    Column {
-                        Text("Esfuerzo (RPE): $rpe", style = MaterialTheme.typography.bodyMedium)
+
+                    // RPE Slider
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Esfuerzo (RPE)", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text("$rpe/10", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NeonBlue)
+                        }
                         Slider(
                             value = rpe.toFloat(),
                             onValueChange = { rpe = it.toInt() },
                             valueRange = 1f..10f,
-                            steps = 8
+                            steps = 8,
+                            colors = SliderDefaults.colors(
+                                thumbColor = NeonBlue,
+                                activeTrackColor = NeonBlue,
+                                inactiveTrackColor = NeonBlue.copy(alpha = 0.2f)
+                            )
                         )
                     }
 
-                    Button(
+                    PulsingWorkoutButton(
+                        text = "REGISTRAR SET",
                         onClick = {
                             val w = weight.toDoubleOrNull() ?: 0.0
                             val r = reps.toIntOrNull() ?: 0
-                            android.util.Log.d("FocusMode", "Button clicked: weight='$weight' ($w), reps='$reps' ($r), rpe=$rpe")
-                            if (r > 0) {
-                                android.util.Log.d("FocusMode", "Logging set...")
-                                onLogSet(w, r, 0, rpe)
-                                // Fields will auto-fill from the LaunchedEffect when completedSets.size changes
-                            } else {
-                                android.util.Log.e("FocusMode", "Cannot log set: reps must be > 0. Current reps='$reps'")
-                            }
+                            if (r > 0) onLogSet(w, r, 0, rpe)
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        enabled = reps.toIntOrNull()?.let { it > 0 } ?: false
-                    ) {
-                        Text("REGISTRAR SET", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.Check,
+                        gradientColors = if (reps.toIntOrNull()?.let { it > 0 } == true) GradientSuccess else GradientPrimary
+                    )
                 }
             }
 
-            // Navigation
+            // Navigation Buttons
             ExerciseNavigation(
                 onNext = onNextExercise,
                 onPrev = onPrevExercise,
                 hasNext = hasNext,
-                hasPrev = hasPrev
+                hasPrev = hasPrev,
+                isNavigating = isNavigating
             )
         }
+    }
+
+    if (showExerciseInfo) {
+        ExerciseInfoBottomSheet(
+            exercise = exercise,
+            onDismiss = { showExerciseInfo = false }
+        )
     }
 }
 
@@ -272,38 +322,46 @@ fun CompletedSetItem(set: ExerciseSetEntity, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(12.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(24.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(NeonGreen.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "${set.setNumber}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    style = MaterialTheme.typography.labelSmall,
+                    color = NeonGreen,
+                    fontWeight = FontWeight.Bold
                 )
             }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "${set.weightUsed}kg × ${set.repsCompleted}",
+                text = "${set.weightUsed} lbs × ${set.repsCompleted}",
                 style = MaterialTheme.typography.bodyLarge,
+                color = TextPrimary,
                 fontWeight = FontWeight.Medium
             )
+            if (set.rpe != null) {
+                Text(
+                    text = " @ RPE ${set.rpe}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextTertiary
+                )
+            }
         }
-        IconButton(onClick = onDelete) {
+        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Eliminar",
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                Icons.Default.Delete,
+                contentDescription = "Borrar",
+                tint = TextTertiary,
+                modifier = Modifier.size(18.dp)
             )
         }
     }
@@ -316,39 +374,39 @@ fun LargeSetInput(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    val isWeight = label.contains("Peso")
+    val isWeight = label.contains("lb", ignoreCase = true)
     
     Column(modifier = modifier) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary,
+            modifier = Modifier.padding(bottom = 4.dp)
         )
+        
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 2.dp)
+                .background(DarkSurfaceElevated)
+                .border(1.dp, GlassBorderSubtle, RoundedCornerShape(12.dp))
         ) {
             IconButton(
                 onClick = {
                     if (isWeight) {
-                        val current = value.toDoubleOrNull() ?: 0.0
-                        if (current > 0) onValueChange((current - 2.5).toString())
+                        val current = value.toDoubleOrNull() ?: 100.0 // Default start
+                        onValueChange(((current - 2.5).coerceAtLeast(0.0)).toString())
                     } else {
-                        val current = value.toIntOrNull() ?: 0
-                        if (current > 0) onValueChange((current - 1).toString())
+                        val current = value.toIntOrNull() ?: 8 // Default start
+                        onValueChange(((current - 1).coerceAtLeast(0)).toString())
                     }
                 },
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(40.dp)
             ) {
-                Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Remove, null, tint = NeonBlue, modifier = Modifier.size(16.dp))
             }
-            
+
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
@@ -356,16 +414,17 @@ fun LargeSetInput(
                 TextField(
                     value = value,
                     onValueChange = onValueChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     ),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = NeonBlue
                     ),
                     singleLine = true
                 )
@@ -374,16 +433,16 @@ fun LargeSetInput(
             IconButton(
                 onClick = {
                     if (isWeight) {
-                        val current = value.toDoubleOrNull() ?: 0.0
+                        val current = value.toDoubleOrNull() ?: 100.0
                         onValueChange((current + 2.5).toString())
                     } else {
-                        val current = value.toIntOrNull() ?: 0
+                        val current = value.toIntOrNull() ?: 8
                         onValueChange((current + 1).toString())
                     }
                 },
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(40.dp)
             ) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, null, tint = NeonBlue, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -394,7 +453,8 @@ fun ExerciseNavigation(
     onNext: () -> Unit,
     onPrev: () -> Unit,
     hasNext: Boolean,
-    hasPrev: Boolean
+    hasPrev: Boolean,
+    isNavigating: Boolean = false
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -402,14 +462,16 @@ fun ExerciseNavigation(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (hasPrev) {
-            Button(
+            OutlinedButton(
                 onClick = onPrev,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                contentPadding = PaddingValues(horizontal = 24.dp)
+                enabled = !isNavigating,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonBlue),
+                border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.linearGradient(listOf(NeonBlue, NeonPurple))),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Icon(Icons.Default.ArrowBack, null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Anterior", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text("Anterior")
             }
         } else {
             Spacer(modifier = Modifier.width(1.dp))
@@ -418,12 +480,29 @@ fun ExerciseNavigation(
         if (hasNext) {
             Button(
                 onClick = onNext,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                contentPadding = PaddingValues(horizontal = 24.dp)
+                enabled = !isNavigating,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(0.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Siguiente", color = MaterialTheme.colorScheme.onSecondaryContainer)
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.Default.ArrowForward, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(listOf(NeonBlue, NeonPurple)),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Siguiente", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+                    }
+                }
             }
         } else {
             Spacer(modifier = Modifier.width(1.dp))
@@ -439,67 +518,184 @@ fun RestTimerOverlay(
     onAdd30s: () -> Unit,
     voiceCoach: com.gymcompanion.app.domain.usecase.VoiceCoachManager? = null
 ) {
-    // Announce rest start
     LaunchedEffect(Unit) {
         voiceCoach?.announceRestTimer(totalSeconds)
     }
     
-    // Announce 10 seconds remaining
     LaunchedEffect(secondsRemaining) {
-        if (secondsRemaining == 10) {
-            voiceCoach?.speak("Quedan 10 segundos")
-        } else if (secondsRemaining == 3) {
-            voiceCoach?.speak("3, 2, 1")
-        } else if (secondsRemaining == 0) {
-            voiceCoach?.announceRestComplete()
-        }
+        if (secondsRemaining == 10) voiceCoach?.speak("Quedan 10 segundos")
+        else if (secondsRemaining == 3) voiceCoach?.speak("3, 2, 1")
+        else if (secondsRemaining == 0) voiceCoach?.announceRestComplete()
     }
     
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f))
-            .clickable(enabled = false) {}, // Block touches
+            .background(DarkBackground.copy(alpha = 0.95f))
+            .clickable(enabled = false) {},
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+            verticalArrangement = Arrangement.spacedBy(40.dp)
         ) {
             Text(
                 text = "Descanso",
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color.White
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = TextPrimary
             )
             
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = if (totalSeconds > 0) secondsRemaining.toFloat() / totalSeconds.toFloat() else 0f,
-                    modifier = Modifier.size(240.dp),
-                    strokeWidth = 12.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                )
-                Text(
-                    text = String.format("%02d:%02d", secondsRemaining / 60, secondsRemaining % 60),
-                    style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            NeonProgressRing(
+                progress = if (totalSeconds > 0) secondsRemaining.toFloat() / totalSeconds.toFloat() else 0f,
+                size = 280.dp,
+                strokeWidth = 16.dp,
+                gradientColors = GradientSuccess
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = String.format("%02d:%02d", secondsRemaining / 60, secondsRemaining % 60),
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Black,
+                        color = NeonGreen,
+                        fontSize = 56.sp
+                    )
+                    Text(
+                        text = "RESTANTE",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextTertiary,
+                        letterSpacing = 2.sp
+                    )
+                }
             }
             
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Button(
                     onClick = onSkip,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonPink.copy(alpha = 0.15f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonPink.copy(alpha = 0.5f))
                 ) {
-                    Text("Saltar", color = MaterialTheme.colorScheme.onErrorContainer)
+                    Text("SALTAR", color = NeonPink, fontWeight = FontWeight.Bold)
                 }
                 
                 Button(
                     onClick = onAdd30s,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonBlue.copy(alpha = 0.15f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonBlue.copy(alpha = 0.5f))
                 ) {
-                    Text("+30s", color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    Text("+30s", color = NeonBlue, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExerciseInfoBottomSheet(
+    exercise: ExerciseEntity,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = DarkSurfaceElevated,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = TextTertiary) }
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            }
+            
+            if (!exercise.illustrationPath.isNullOrBlank()) {
+                item {
+                    AsyncImage(
+                        model = exercise.illustrationPath,
+                        contentDescription = exercise.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(DarkSurface),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ModernBadge(text = exercise.muscleGroup, containerColor = NeonBlue.copy(alpha = 0.2f), contentColor = NeonBlue)
+                    if (exercise.equipmentNeeded.isNotBlank()) {
+                        ModernBadge(text = exercise.equipmentNeeded, containerColor = NeonPurple.copy(alpha = 0.2f), contentColor = NeonPurple)
+                    }
+                }
+            }
+
+            if (exercise.description.isNotBlank()) {
+                item {
+                    GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("📖 Descripción", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Text(exercise.description, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                        }
+                    }
+                }
+            }
+
+            if (exercise.instructionsSteps.isNotBlank()) {
+                item {
+                    val instructions = try {
+                        val gson = Gson()
+                        val type = object : TypeToken<List<String>>() {}.type
+                        gson.fromJson<List<String>>(exercise.instructionsSteps, type)
+                    } catch (e: Exception) {
+                        listOf(exercise.instructionsSteps)
+                    }
+                    ExerciseInfoListSection(
+                        title = "📋 Instrucciones",
+                        items = instructions,
+                        color = NeonBlue,
+                        numbered = true
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExerciseInfoListSection(
+    title: String,
+    items: List<String>,
+    color: Color,
+    numbered: Boolean = false
+) {
+    GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
+            items.forEachIndexed { index, item ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = if (numbered) "${index + 1}." else "•",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = color,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = item,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
                 }
             }
         }

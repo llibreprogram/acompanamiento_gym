@@ -3,10 +3,13 @@ package com.gymcompanion.app.presentation.screens.home
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,21 +18,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gymcompanion.app.data.local.entity.RoutineWithExercises
 import com.gymcompanion.app.presentation.components.*
-import com.gymcompanion.app.presentation.navigation.Screen
+import com.gymcompanion.app.presentation.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Pantalla de inicio / Home
- * Muestra rutina del día, estadísticas rápidas y acceso a funciones principales
+ * 🏠 HOME SCREEN — Premium Dark Neon Design
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,14 +53,14 @@ fun HomeScreen(
     val sessionPrediction by viewModel.sessionPrediction.collectAsState()
     val healthData by viewModel.healthData.collectAsState()
     val healthConnectAvailable by viewModel.healthConnectAvailable.collectAsState()
-    
+
     // Health Connect permissions
     val requestPermissions = rememberHealthConnectPermissionsLauncher(
         onPermissionsGranted = {
             viewModel.loadHealthData()
         }
     )
-    
+
     // Motivational quotes
     val quotes = remember {
         listOf(
@@ -71,19 +74,34 @@ fun HomeScreen(
         )
     }
     val todayQuote = remember { quotes.random() }
-    
+
     Scaffold(
+        containerColor = DarkBackground,
         topBar = {
             SmallTopAppBar(
-                title = { 
-                    Text(
-                        "Gym Companion",
-                        fontWeight = FontWeight.Bold
-                    ) 
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Neon dot indicator
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(NeonGreen)
+                        )
+                        Text(
+                            "GYM COMPANION",
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.sp,
+                            color = TextPrimary
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = DarkSurface.copy(alpha = 0.95f)
                 )
             )
         }
@@ -95,257 +113,233 @@ fun HomeScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Welcome message with animation
-            item {
-                StaggeredEntrance(index = 0) {
-                    WelcomeSection(
-                        name = userName ?: "",
-                        quote = todayQuote ?: ""
-                    )
-                }
-            }
-            
-            // Smart Recommendation Engine
-            item {
-                StaggeredEntrance(index = 2) {
-                    SmartRecommendationCard(
-                        overtrainingRisk = overtrainingRisk,
-                        sessionPrediction = sessionPrediction,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-            
-            // Quick stats with modern cards
-            item {
-                StaggeredEntrance(index = 3) {
-                    QuickStatsModernSection(
-                        weeklyStats = weeklyStats,
-                        viewModel = viewModel
-                    )
-                }
-            }
-            
-            // Health Connect data
-            if (healthConnectAvailable) {
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // ── Hero Welcome Section ────────────────────────
                 item {
-                    StaggeredEntrance(index = 4) {
-                        HealthDataSection(
-                            steps = healthData?.steps?.count,
-                            weight = healthData?.weight?.weightKg,
-                            heartRate = healthData?.heartRate?.beatsPerMinute,
-                            onRequestPermissions = requestPermissions,
+                    AnimatedEntrance(index = 0) {
+                        HeroWelcomeSection(
+                            name = userName ?: "",
+                            quote = todayQuote
+                        )
+                    }
+                }
+
+                // ── Smart Recommendation ────────────────────────
+                item {
+                    AnimatedEntrance(index = 1) {
+                        SmartRecommendationCard(
+                            overtrainingRisk = overtrainingRisk,
+                            sessionPrediction = sessionPrediction,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
-            }
-            
-            // Quick actions
-            item {
-                StaggeredEntrance(index = 5) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        QuickActionCard(
-                            title = "Nueva Rutina",
-                            subtitle = "Crea una rutina personalizada",
-                            icon = Icons.Default.Add,
-                            onClick = onNavigateToRoutines,
-                            modifier = Modifier.weight(1f),
-                            gradient = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary
+
+                // ── Weekly Stats Rings ──────────────────────────
+                item {
+                    AnimatedEntrance(index = 2) {
+                        NeonStatsSection(
+                            weeklyStats = weeklyStats,
+                            viewModel = viewModel
+                        )
+                    }
+                }
+
+                // ── Health Connect Data ─────────────────────────
+                if (healthConnectAvailable) {
+                    item {
+                        AnimatedEntrance(index = 3) {
+                            HealthDataSection(
+                                steps = healthData?.steps?.count,
+                                weight = healthData?.weight?.weightKg,
+                                heartRate = healthData?.heartRate?.beatsPerMinute,
+                                onRequestPermissions = requestPermissions,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // ── Quick Action Grid ───────────────────────────
+                item {
+                    AnimatedEntrance(index = 4) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            QuickActionCard(
+                                title = "Nueva Rutina",
+                                subtitle = "IA personalizada",
+                                icon = Icons.Default.Add,
+                                onClick = onNavigateToRoutines,
+                                modifier = Modifier.weight(1f),
+                                gradient = Brush.linearGradient(
+                                    colors = listOf(NeonBlue, NeonPurple)
                                 )
                             )
-                        )
-                        QuickActionCard(
-                            title = "Estadísticas",
-                            subtitle = "Ve tu progreso",
-                            icon = Icons.Default.BarChart,
-                            onClick = onNavigateToAnalytics,
-                            modifier = Modifier.weight(1f),
-                            gradient = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.secondary,
-                                    MaterialTheme.colorScheme.tertiary
+                            QuickActionCard(
+                                title = "Estadísticas",
+                                subtitle = "Tu progreso",
+                                icon = Icons.Default.BarChart,
+                                onClick = onNavigateToAnalytics,
+                                modifier = Modifier.weight(1f),
+                                gradient = Brush.linearGradient(
+                                    colors = listOf(NeonPurple, NeonPink)
                                 )
                             )
-                        )
+                        }
                     }
                 }
-            }
-            
-            // Today's routines
-            item {
-                StaggeredEntrance(index = 6) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "🏋️ Rutinas de Hoy",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        ModernBadge(
-                            text = "${todayRoutines.size}",
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
-            
-            if (todayRoutines.isEmpty()) {
-                item {
-                    TodayRoutineEmptyModernCard(onCreateRoutine = onNavigateToRoutines)
-                }
-            } else {
-                items(todayRoutines) { routine ->
-                    TodayRoutineModernCard(
-                        routine = routine,
-                        onStartWorkout = { onStartWorkout(routine.routine.id) }
-                    )
-                }
-            }
-            
-            // Last session
-            lastSession?.let { session ->
-                item {
-                    ModernDivider()
-                }
-                item {
-                    Text(
-                        text = "📊 Último Entrenamiento",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                item {
-                    LastSessionModernCard(
-                        session = session,
-                        viewModel = viewModel
-                    )
-                }
-            }
-            
-            // Motivational tip card
-            item {
-                StaggeredEntrance(index = 1) {
-                    MotivationCard(
-                        tip = "La consistencia vence al talento cuando el talento no es consistente.",
-                        author = "Anónimo",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
 
-            // Weekly progress chart
-            item {
-                StaggeredEntrance(index = 6) {
-                    ModernCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        elevation = 3.dp
-                    ) {
-                        InteractiveChart(
-                            dataPoints = dailyWorkoutData.ifEmpty {
-                                // Datos por defecto si no hay entrenamientos
-                                listOf(
-                                    "Lun" to 0f,
-                                    "Mar" to 0f,
-                                    "Mié" to 0f,
-                                    "Jue" to 0f,
-                                    "Vie" to 0f,
-                                    "Sáb" to 0f,
-                                    "Dom" to 0f
-                                )
-                            },
+                // ── Today's Routines ────────────────────────────
+                item {
+                    AnimatedEntrance(index = 5) {
+                        SectionHeader(
+                            title = "🏋️ Rutinas de Hoy",
+                            action = "${todayRoutines.size}",
+                            onAction = onNavigateToRoutines
+                        )
+                    }
+                }
+
+                if (todayRoutines.isEmpty()) {
+                    item {
+                        AnimatedEntrance(index = 6) {
+                            EmptyRoutineNeonCard(onCreateRoutine = onNavigateToRoutines)
+                        }
+                    }
+                } else {
+                    itemsIndexed(todayRoutines) { idx, routine ->
+                        AnimatedEntrance(index = 6 + idx) {
+                            TodayRoutineNeonCard(
+                                routine = routine,
+                                onStartWorkout = { onStartWorkout(routine.routine.id) }
+                            )
+                        }
+                    }
+                }
+
+                // ── Last Session ────────────────────────────────
+                lastSession?.let { session ->
+                    item {
+                        AnimatedEntrance(index = 7) {
+                            SectionHeader(title = "📊 Último Entrenamiento")
+                        }
+                    }
+                    item {
+                        AnimatedEntrance(index = 8) {
+                            LastSessionNeonCard(
+                                session = session,
+                                viewModel = viewModel
+                            )
+                        }
+                    }
+                }
+
+                // ── Weekly Chart ────────────────────────────────
+                item {
+                    AnimatedEntrance(index = 9) {
+                        GlassmorphicCard(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            InteractiveChart(
+                                dataPoints = dailyWorkoutData.ifEmpty {
+                                    listOf(
+                                        "Lun" to 0f, "Mar" to 0f, "Mié" to 0f,
+                                        "Jue" to 0f, "Vie" to 0f, "Sáb" to 0f, "Dom" to 0f
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // ── Achievements ────────────────────────────────
+                item {
+                    AnimatedEntrance(index = 10) {
+                        SectionHeader(title = "🏆 Logros")
+                    }
+                }
+
+                item {
+                    AnimatedEntrance(index = 11) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            AchievementCard(
+                                title = "Primera Semana",
+                                description = "Completaste tu primera semana de entrenamientos",
+                                icon = Icons.Default.EmojiEvents,
+                                achieved = weeklyStats.totalWorkouts >= 3,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            AchievementCard(
+                                title = "Racha de 5 Días",
+                                description = "Entrenaste 5 días seguidos",
+                                icon = Icons.Default.LocalFireDepartment,
+                                achieved = weeklyStats.totalWorkouts >= 5,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            AchievementCard(
+                                title = "Volumen Total",
+                                description = "Levantaste más de 10,000 lbs esta semana",
+                                icon = Icons.Default.TrendingUp,
+                                achieved = weeklyStats.totalVolume >= 10000,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // ── Streak Calendar ─────────────────────────────
+                item {
+                    AnimatedEntrance(index = 12) {
+                        GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+                            WorkoutStreakCalendar(
+                                streakDays = listOf(true, true, false, true, true, false, false),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+
+                // ── Motivation ──────────────────────────────────
+                item {
+                    AnimatedEntrance(index = 13) {
+                        MotivationCard(
+                            tip = "La consistencia vence al talento cuando el talento no es consistente.",
+                            author = "Anónimo",
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
+
+                // Bottom spacing
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
 
-            // Achievements section
-            item {
-                StaggeredEntrance(index = 7) {
-                    Text(
-                        text = "🏆 Logros",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AchievementCard(
-                        title = "Primera Semana",
-                        description = "Completaste tu primera semana de entrenamientos",
-                        icon = Icons.Default.EmojiEvents,
-                        achieved = weeklyStats.totalWorkouts >= 3,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    AchievementCard(
-                        title = "Racha de 5 Días",
-                        description = "Entrenaste 5 días seguidos",
-                        icon = Icons.Default.LocalFireDepartment,
-                        achieved = weeklyStats.totalWorkouts >= 5,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    AchievementCard(
-                        title = "Volumen Total",
-                        description = "Levantaste más de 10,000 kg esta semana",
-                        icon = Icons.Default.TrendingUp,
-                        achieved = weeklyStats.totalVolume >= 10000,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // Workout streak calendar
-            item {
-                StaggeredEntrance(index = 8) {
-                    ModernCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        elevation = 3.dp
-                    ) {
-                        WorkoutStreakCalendar(
-                            streakDays = listOf(true, true, false, true, true, false, false),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-        }
-            
             // Pull-to-refresh indicator
             AnimatedVisibility(
                 visible = isRefreshing,
                 modifier = Modifier.align(Alignment.TopCenter)
             ) {
                 LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    color = NeonBlue,
+                    trackColor = DarkSurface
                 )
             }
         }
     }
 }
 
-/**
- * Obtiene saludo según hora del día
- */
+// ══════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ══════════════════════════════════════════════════════════════════
+
 fun getGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when (hour) {
@@ -356,32 +350,171 @@ fun getGreeting(): String {
     }
 }
 
-/**
- * Obtiene fecha actual formateada
- */
 fun getCurrentDate(): String {
     val sdf = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
     return sdf.format(Date()).capitalize(Locale.getDefault())
 }
 
+// ══════════════════════════════════════════════════════════════════
+// SUB-COMPOSABLES — Premium Neon Design
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Hero welcome with gradient text and animated greeting
+ */
 @Composable
-fun TodayRoutineModernCard(
+fun HeroWelcomeSection(name: String, quote: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = getGreeting() + (if (name.isNotBlank()) ", $name" else ""),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = TextPrimary
+        )
+        Text(
+            text = getCurrentDate(),
+            style = MaterialTheme.typography.bodyLarge,
+            color = NeonBlue
+        )
+        if (quote.isNotBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = quote,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextTertiary
+            )
+        }
+    }
+}
+
+/**
+ * Weekly stats with neon progress rings
+ */
+@Composable
+fun NeonStatsSection(
+    weeklyStats: WeeklyStats,
+    viewModel: HomeViewModel
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionHeader(title = "📈 Esta Semana")
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Workouts ring
+            GlassmorphicCard(modifier = Modifier.weight(1f)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NeonProgressRing(
+                        progress = (weeklyStats.totalWorkouts / 7f).coerceAtMost(1f),
+                        size = 72.dp,
+                        strokeWidth = 6.dp,
+                        gradientColors = GradientPrimary
+                    ) {
+                        Text(
+                            text = "${weeklyStats.totalWorkouts}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = NeonBlue
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Sesiones",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+
+            // Time
+            GlassmorphicCard(modifier = Modifier.weight(1f)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NeonProgressRing(
+                        progress = (weeklyStats.totalTime / 7200f).coerceAtMost(1f), // 2h target
+                        size = 72.dp,
+                        strokeWidth = 6.dp,
+                        gradientColors = GradientSuccess
+                    ) {
+                        Icon(
+                            Icons.Default.Timer,
+                            contentDescription = null,
+                            tint = NeonGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = viewModel.formatTime(weeklyStats.totalTime),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "Tiempo",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+
+            // Volume
+            GlassmorphicCard(modifier = Modifier.weight(1f)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NeonProgressRing(
+                        progress = (weeklyStats.totalVolume.toFloat() / 50000f).coerceAtMost(1f),
+                        size = 72.dp,
+                        strokeWidth = 6.dp,
+                        gradientColors = GradientPurple
+                    ) {
+                        Icon(
+                            Icons.Default.TrendingUp,
+                            contentDescription = null,
+                            tint = NeonPurple,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = viewModel.formatVolume(weeklyStats.totalVolume),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "Volumen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Today's routine card with neon gradient border and pulsing CTA
+ */
+@Composable
+fun TodayRoutineNeonCard(
     routine: RoutineWithExercises,
     onStartWorkout: () -> Unit
 ) {
-    ModernCard(
+    NeonGradientCard(
         modifier = Modifier.fillMaxWidth(),
-        gradient = Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-            )
-        ),
-        elevation = 4.dp,
-        onClick = onStartWorkout,
-        animateOnClick = true
+        gradientColors = GradientPrimary,
+        onClick = onStartWorkout
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -391,78 +524,77 @@ fun TodayRoutineModernCard(
                     Text(
                         text = routine.routine.name,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
                     if (!routine.routine.description.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = routine.routine.description ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
                         )
                     }
                 }
-                
+
+                // Neon icon badge
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary),
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(NeonBlue, NeonPurple)
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.FitnessCenter,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
-            
+
+            // Exercise count + badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ModernBadge(
                     text = "${routine.routineExercises.size} ejercicios",
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                ModernBadge(
-                    text = routine.routine.name,
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    containerColor = NeonBlue.copy(alpha = 0.15f),
+                    contentColor = NeonBlue
                 )
             }
-            
-            ModernButton(
-                onClick = onStartWorkout,
+
+            // Pulsing start button
+            PulsingWorkoutButton(
                 text = "Comenzar Entrenamiento",
-                icon = Icons.Default.PlayArrow,
-                gradient = Brush.horizontalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondary
-                    )
-                ),
-                modifier = Modifier.fillMaxWidth()
+                onClick = onStartWorkout,
+                modifier = Modifier.fillMaxWidth(),
+                gradientColors = GradientPrimary
             )
         }
     }
 }
 
+/**
+ * Empty routine card — no routines for today
+ */
 @Composable
-fun TodayRoutineEmptyModernCard(onCreateRoutine: () -> Unit) {
-    ModernCard(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        elevation = 2.dp
+fun EmptyRoutineNeonCard(onCreateRoutine: () -> Unit) {
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Neon icon
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -470,8 +602,8 @@ fun TodayRoutineEmptyModernCard(onCreateRoutine: () -> Unit) {
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                                NeonBlue.copy(alpha = 0.15f),
+                                NeonPurple.copy(alpha = 0.15f)
                             )
                         )
                     ),
@@ -481,10 +613,10 @@ fun TodayRoutineEmptyModernCard(onCreateRoutine: () -> Unit) {
                     imageVector = Icons.Default.FitnessCenter,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = NeonBlue
                 )
             }
-            
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -492,107 +624,41 @@ fun TodayRoutineEmptyModernCard(onCreateRoutine: () -> Unit) {
                 Text(
                     text = "No hay rutinas para hoy",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
                 Text(
                     text = "Crea una rutina personalizada o usa nuestro generador con IA",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = TextSecondary
                 )
             }
-            
-            ModernButton(
-                onClick = onCreateRoutine,
+
+            PulsingWorkoutButton(
                 text = "Crear Primera Rutina",
+                onClick = onCreateRoutine,
+                modifier = Modifier.fillMaxWidth(),
                 icon = Icons.Default.Add,
-                modifier = Modifier.fillMaxWidth()
+                gradientColors = GradientSuccess
             )
         }
     }
 }
 
+/**
+ * Last workout session card with glassmorphic sub-stats
+ */
 @Composable
-fun QuickStatsModernSection(
-    weeklyStats: WeeklyStats,
-    viewModel: HomeViewModel
-) {
-    val volumeTrend by viewModel.volumeTrend.collectAsState()
-    val frequencyTrend by viewModel.frequencyTrend.collectAsState()
-    
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = "📈 Esta Semana",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatCard(
-                title = "Entrenamientos",
-                value = weeklyStats.totalWorkouts.toString(),
-                subtitle = "sesiones",
-                icon = Icons.Default.FitnessCenter,
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                iconBackgroundColor = MaterialTheme.colorScheme.primary,
-                iconColor = MaterialTheme.colorScheme.onPrimary,
-                trendDirection = frequencyTrend?.direction,
-                trendPercentage = frequencyTrend?.percentageChange
-            )
-        }
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatCard(
-                title = "Tiempo Total",
-                value = viewModel.formatTime(weeklyStats.totalTime),
-                subtitle = "entrenando",
-                icon = Icons.Default.Timer,
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                iconBackgroundColor = MaterialTheme.colorScheme.secondary,
-                iconColor = MaterialTheme.colorScheme.onSecondary,
-                showTrend = false // No trend for time yet
-            )
-            StatCard(
-                title = "Volumen",
-                value = viewModel.formatVolume(weeklyStats.totalVolume),
-                subtitle = "levantado",
-                icon = Icons.Default.TrendingUp,
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                iconColor = MaterialTheme.colorScheme.onTertiary,
-                trendDirection = volumeTrend?.direction,
-                trendPercentage = volumeTrend?.percentageChange
-            )
-        }
-    }
-}
-
-
-
-@Composable
-fun LastSessionModernCard(
+fun LastSessionNeonCard(
     session: com.gymcompanion.app.data.local.entity.WorkoutSessionEntity,
     viewModel: HomeViewModel
 ) {
     val duration = if (session.endTime != null) {
         (session.endTime!! - session.startTime) / 1000
     } else 0L
-    
-    ModernCard(
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        elevation = 3.dp
+
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
@@ -604,92 +670,101 @@ fun LastSessionModernCard(
                     Text(
                         text = "Última Sesión",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
                     Text(
                         text = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
                             .format(Date(session.startTime)),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = TextTertiary
                     )
                 }
-                
+
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.tertiaryContainer),
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(NeonGreen.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(24.dp)
+                        tint = NeonGreen,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ModernCard(
-                    modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    elevation = 1.dp
+                // Duration stat
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DarkSurfaceElevated)
+                        .border(1.dp, GlassBorderSubtle, RoundedCornerShape(14.dp))
+                        .padding(12.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Timer,
+                            Icons.Default.Timer,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            tint = NeonBlue,
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = viewModel.formatTime(duration),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = TextPrimary
                         )
                         Text(
                             text = "Duración",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextTertiary
                         )
                     }
                 }
-                
-                ModernCard(
-                    modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    elevation = 1.dp
+
+                // Volume stat
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DarkSurfaceElevated)
+                        .border(1.dp, GlassBorderSubtle, RoundedCornerShape(14.dp))
+                        .padding(12.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            imageVector = Icons.Default.TrendingUp,
+                            Icons.Default.TrendingUp,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(20.dp)
+                            tint = NeonPurple,
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = viewModel.formatVolume(session.totalVolume),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = TextPrimary
                         )
                         Text(
                             text = "Volumen",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextTertiary
                         )
                     }
                 }
@@ -698,19 +773,25 @@ fun LastSessionModernCard(
     }
 }
 
+// Legacy aliases for backward compat
 @Composable
-fun WelcomeSection(name: String, quote: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = getGreeting() + (if (name.isNotBlank()) ", $name" else ""),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = "Hoy es ${getCurrentDate()}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
+fun TodayRoutineModernCard(routine: RoutineWithExercises, onStartWorkout: () -> Unit) =
+    TodayRoutineNeonCard(routine, onStartWorkout)
+
+@Composable
+fun TodayRoutineEmptyModernCard(onCreateRoutine: () -> Unit) =
+    EmptyRoutineNeonCard(onCreateRoutine)
+
+@Composable
+fun QuickStatsModernSection(weeklyStats: WeeklyStats, viewModel: HomeViewModel) =
+    NeonStatsSection(weeklyStats, viewModel)
+
+@Composable
+fun LastSessionModernCard(
+    session: com.gymcompanion.app.data.local.entity.WorkoutSessionEntity,
+    viewModel: HomeViewModel
+) = LastSessionNeonCard(session, viewModel)
+
+@Composable
+fun WelcomeSection(name: String, quote: String) =
+    HeroWelcomeSection(name, quote)

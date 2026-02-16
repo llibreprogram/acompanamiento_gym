@@ -11,5 +11,7 @@ data class TrainingPhaseEntity(
     val phaseName: String, // "Hypertrophy", "Strength", "Power", "Deload"
     val startDate: Long = System.currentTimeMillis(),
     val durationWeeks: Int = 4,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val currentWeek: Int = 1, // Semana actual dentro de la fase
+    val totalWeeksBeforeDeload: Int = 4 // Semanas antes del deload
 )

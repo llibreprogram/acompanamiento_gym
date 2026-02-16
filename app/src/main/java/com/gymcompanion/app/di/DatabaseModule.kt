@@ -3,6 +3,7 @@ package com.gymcompanion.app.di
 import android.content.Context
 import androidx.room.Room
 import com.gymcompanion.app.data.local.DatabaseInitializer
+import com.gymcompanion.app.data.local.DatabaseMigrations
 import com.gymcompanion.app.data.local.GymDatabase
 import com.gymcompanion.app.data.local.dao.*
 import dagger.Module
@@ -31,7 +32,8 @@ object DatabaseModule {
             GymDatabase.DATABASE_NAME
         )
             .addCallback(databaseInitializer)
-            .fallbackToDestructiveMigration()
+            .addMigrations(*DatabaseMigrations.ALL_MIGRATIONS)
+            // REMOVED: .fallbackToDestructiveMigration() - This was causing data loss!
             .build()
     }
     

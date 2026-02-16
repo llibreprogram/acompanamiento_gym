@@ -148,10 +148,6 @@ java -version
 ### Error: "Manifest merger failed"
 **Solución**: Verificar que no haya conflictos en `AndroidManifest.xml`
 
-### Error: "libdl.so.2" o "AAPT2 Daemon startup failed" (Linux ARM64)
-**Causa**: Incompatibilidad de arquitectura (x86-64 vs ARM64).
-**Solución**: Ver documento detallado [AAPT2_FIX_ARM64.md](AAPT2_FIX_ARM64.md) para instrucciones de reemplazo manual del binario.
-
 ### App crashea al iniciar
 **Verificar**:
 1. Logs en Logcat (filtrar por "GymCompanion")

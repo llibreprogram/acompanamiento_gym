@@ -21,7 +21,7 @@ import com.gymcompanion.app.data.local.entity.*
         UserPreferencesEntity::class,
         TrainingPhaseEntity::class
     ],
-    version = 4,
+    version = 7, // Added currentWeek and totalWeeksBeforeDeload to training_phases
     exportSchema = true
 )
 abstract class GymDatabase : RoomDatabase() {

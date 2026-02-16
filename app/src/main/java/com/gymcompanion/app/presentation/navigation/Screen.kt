@@ -10,7 +10,6 @@ sealed class Screen(val route: String) {
     object Exercises : Screen("exercises")
     object Progress : Screen("progress")
     object Profile : Screen("profile")
-    object Analytics : Screen("analytics")
     
     // Detail screens
     object ExerciseDetail : Screen("exercise_detail/{exerciseId}") {

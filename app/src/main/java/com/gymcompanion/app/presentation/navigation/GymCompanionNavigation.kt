@@ -3,6 +3,11 @@ package com.gymcompanion.app.presentation.navigation
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -10,6 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.blur
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,6 +30,8 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -53,7 +63,16 @@ fun GymCompanionNavigation() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) {
+            val enterTrans = fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.95f, animationSpec = tween(400))
+            val exitTrans = fadeOut(animationSpec = tween(400)) + scaleOut(targetScale = 0.95f, animationSpec = tween(400))
+
+            composable(
+                route = Screen.Home.route,
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
+            ) {
                 HomeScreen(
                     onStartWorkout = { routineId ->
                         navController.navigate(Screen.WorkoutSession.createRoute(routineId))
@@ -65,12 +84,17 @@ fun GymCompanionNavigation() {
                         navController.navigate(Screen.Progress.route)
                     },
                     onNavigateToAnalytics = {
-                        // Navigate to Progress tab instead
                         navController.navigate(Screen.Progress.route)
                     }
                 )
             }
-            composable(Screen.Routines.route) {
+            composable(
+                route = Screen.Routines.route,
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
+            ) {
                 RoutinesScreen(
                     onRoutineClick = { routineId ->
                         navController.navigate(Screen.WorkoutSession.createRoute(routineId))
@@ -83,7 +107,13 @@ fun GymCompanionNavigation() {
                     }
                 )
             }
-            composable(Screen.RoutineGenerator.route) {
+            composable(
+                route = Screen.RoutineGenerator.route,
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
+            ) {
                 com.gymcompanion.app.presentation.screens.routine_generator.RoutineGeneratorScreen(
                     onRoutineGenerated = {
                         navController.popBackStack()
@@ -95,7 +125,11 @@ fun GymCompanionNavigation() {
                 route = Screen.RoutineDetail.route,
                 arguments = listOf(
                     navArgument("routineId") { type = NavType.LongType }
-                )
+                ),
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
             ) { backStackEntry ->
                 val routineId = backStackEntry.arguments?.getLong("routineId") ?: 0L
                 com.gymcompanion.app.presentation.screens.routines.RoutineDetailScreen(
@@ -103,7 +137,13 @@ fun GymCompanionNavigation() {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.Exercises.route) {
+            composable(
+                route = Screen.Exercises.route,
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
+            ) {
                 ExercisesScreen(
                     onExerciseClick = { exerciseId ->
                         navController.navigate(Screen.ExerciseDetail.createRoute(exerciseId))
@@ -114,7 +154,11 @@ fun GymCompanionNavigation() {
                 route = Screen.ExerciseDetail.route,
                 arguments = listOf(
                     navArgument("exerciseId") { type = NavType.LongType }
-                )
+                ),
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
             ) { backStackEntry ->
                 val exerciseId = backStackEntry.arguments?.getLong("exerciseId") ?: 0L
                 ExerciseDetailScreen(
@@ -126,7 +170,11 @@ fun GymCompanionNavigation() {
                 route = Screen.WorkoutSession.route,
                 arguments = listOf(
                     navArgument("routineId") { type = NavType.LongType }
-                )
+                ),
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
             ) { backStackEntry ->
                 val routineId = backStackEntry.arguments?.getLong("routineId") ?: 0L
                 WorkoutScreen(
@@ -139,10 +187,22 @@ fun GymCompanionNavigation() {
                     }
                 )
             }
-            composable(Screen.Progress.route) {
+            composable(
+                route = Screen.Progress.route,
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
+            ) {
                 ProgressScreen()
             }
-            composable(Screen.Profile.route) {
+            composable(
+                route = Screen.Profile.route,
+                enterTransition = { enterTrans },
+                exitTransition = { exitTrans },
+                popEnterTransition = { enterTrans },
+                popExitTransition = { exitTrans }
+            ) {
                 ProfileScreen(navController = navController)
             }
         }
@@ -150,7 +210,7 @@ fun GymCompanionNavigation() {
 }
 
 /**
- * Barra de navegación inferior moderna con animaciones
+ * Barra de navegación inferior moderna con animaciones y colores neón
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,26 +219,29 @@ fun BottomNavigationBar(navController: NavHostController) {
     val currentDestination = navBackStackEntry?.destination
 
     val items = listOf(
-        BottomNavItem("Inicio", Screen.Home.route, Icons.Filled.Home, Icons.Filled.Home),
-        BottomNavItem("Rutinas", Screen.Routines.route, Icons.Filled.FitnessCenter, Icons.Filled.FitnessCenter),
-        BottomNavItem("Ejercicios", Screen.Exercises.route, Icons.Filled.List, Icons.Filled.List),
-        BottomNavItem("Progreso", Screen.Progress.route, Icons.Filled.TrendingUp, Icons.Filled.TrendingUp),
-        BottomNavItem("Perfil", Screen.Profile.route, Icons.Filled.Person, Icons.Filled.Person)
+        BottomNavItem("Inicio", Screen.Home.route, Icons.Filled.Home, Icons.Filled.Home, com.gymcompanion.app.presentation.theme.NeonBlue),
+        BottomNavItem("Rutinas", Screen.Routines.route, Icons.Filled.FitnessCenter, Icons.Filled.FitnessCenter, com.gymcompanion.app.presentation.theme.NeonPurple),
+        BottomNavItem("Ejercicios", Screen.Exercises.route, Icons.Filled.List, Icons.Filled.List, com.gymcompanion.app.presentation.theme.NeonOrange),
+        BottomNavItem("Progreso", Screen.Progress.route, Icons.Filled.TrendingUp, Icons.Filled.TrendingUp, com.gymcompanion.app.presentation.theme.NeonGreen),
+        BottomNavItem("Perfil", Screen.Profile.route, Icons.Filled.Person, Icons.Filled.Person, com.gymcompanion.app.presentation.theme.NeonPink)
     )
 
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 8.dp
+        containerColor = com.gymcompanion.app.presentation.theme.DarkSurface.copy(alpha = 0.95f),
+        contentColor = com.gymcompanion.app.presentation.theme.TextSecondary,
+        tonalElevation = 0.dp,
+        modifier = Modifier,
+        windowInsets = NavigationBarDefaults.windowInsets
     ) {
         items.forEachIndexed { index, item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-
+            
+            // Animated scale for selection
             val scale by animateFloatAsState(
-                targetValue = if (selected) 1.1f else 1f,
+                targetValue = if (selected) 1.2f else 1f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
+                    stiffness = Spring.StiffnessLow
                 ),
                 label = "nav_item_scale_$index"
             )
@@ -189,19 +252,34 @@ fun BottomNavigationBar(navController: NavHostController) {
                         modifier = Modifier.scale(scale),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Glow effect behind selected icon
+                        if (selected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .blur(12.dp)
+                                    .background(item.color.copy(alpha = 0.5f), CircleShape)
+                            )
+                        }
+                        
                         Icon(
                             if (selected) item.selectedIcon else item.icon,
                             contentDescription = item.title,
-                            modifier = Modifier.size(if (selected) 28.dp else 24.dp)
+                            modifier = Modifier.size(24.dp),
+                            tint = if (selected) item.color else com.gymcompanion.app.presentation.theme.TextTertiary
                         )
                     }
                 },
                 label = {
-                    Text(
-                        item.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                    )
+                    if (selected) {
+                        Text(
+                            item.title,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = item.color,
+                            fontSize = 10.sp
+                        )
+                    }
                 },
                 selected = selected,
                 onClick = {
@@ -214,12 +292,9 @@ fun BottomNavigationBar(navController: NavHostController) {
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                    indicatorColor = Color.Transparent // No pill background, just the glow
+                ),
+                alwaysShowLabel = false
             )
         }
     }
@@ -229,5 +304,6 @@ data class BottomNavItem(
     val title: String,
     val route: String,
     val icon: ImageVector,
-    val selectedIcon: ImageVector = icon
+    val selectedIcon: ImageVector = icon,
+    val color: androidx.compose.ui.graphics.Color = com.gymcompanion.app.presentation.theme.NeonBlue
 )

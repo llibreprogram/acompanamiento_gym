@@ -23,9 +23,7 @@ import kotlin.random.Random
 class RoutineGeneratorUseCase @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
     private val routineRepository: RoutineRepository,
-    private val smartAnalyzer: SmartExerciseAnalyzer,
-    private val progressAnalyzer: ProgressAnalyzer,
-    private val periodizationManager: PeriodizationManager
+    private val smartAnalyzer: SmartExerciseAnalyzer
 ) {
     
     /**
@@ -34,24 +32,20 @@ class RoutineGeneratorUseCase @Inject constructor(
     suspend fun generateRoutine(request: RoutineGenerationRequest, userId: Long): List<RoutineEntity> {
         val allExercises = exerciseRepository.getAllExercises().first()
         
-        // --- Personalización avanzada usando datos de perfil ---
-        // Filtrar ejercicios según restricciones, preferencias, nivel, edad, género, peso, altura, etc.
+        // Personalización avanzada:
+        // En vez de filtrar estrictamente (lo que puede dejar 0 resultados), 
+        // dejamos que SmartExerciseAnalyzer puntúe y ordene los ejercicios.
+        // Solo filtramos explícitamente si hay restricciones de seguridad críticas que no maneje el Analyzer.
+        
         val filteredExercises = allExercises.filter { exercise ->
-            // Ejemplo de lógica avanzada:
-            // 1. Filtrar por nivel de experiencia
-            val experienceMatch = request.experienceLevel == null || exercise.difficulty.equals(request.experienceLevel, ignoreCase = true)
-            // 2. Filtrar por género si aplica
-            val genderMatch = request.gender == null || exercise.suitableForGender == null || exercise.suitableForGender == "all" || exercise.suitableForGender == request.gender
-            // 3. Filtrar por restricciones médicas
-            val restrictionMatch = request.restrictions == null || !exercise.name.contains(request.restrictions, ignoreCase = true)
-            // 4. Filtrar por preferencias
-            // FIX: Si las etiquetas son nulas, permitimos el ejercicio para no filtrar todo
-            val preferenceMatch = request.preferences == null || 
-                                  exercise.tags == null || 
-                                  (exercise.tags.split(",").map { it.trim() }.contains(request.preferences) == true)
-            // 5. Filtrar por edad, peso, altura si aplica (puedes agregar lógica específica)
-            experienceMatch && genderMatch && restrictionMatch && preferenceMatch
+             // Filtrar por restricciones médicas explícitas (texto libre) si el usuario las ingresó
+             val restrictionMatch = request.restrictions.isNullOrBlank() || 
+                                   !exercise.name.contains(request.restrictions, ignoreCase = true)
+                                   
+             restrictionMatch
         }
+
+        Log.d("RoutineGeneratorUseCase", "Ejercicios filtrados: ${filteredExercises.size} de ${allExercises.size} para perfil: age=${request.age}, gender=${request.gender}, weight=${request.weight}, height=${request.height}, experienceLevel=${request.experienceLevel}, preferences=${request.preferences}, restrictions=${request.restrictions}")
 
         // Usar filteredExercises en vez de allExercises para la generación
         return when (request.daysPerWeek) {
@@ -71,44 +65,35 @@ class RoutineGeneratorUseCase @Inject constructor(
         userId: Long,
         exercises: List<ExerciseEntity>
     ): List<RoutineEntity> {
-        val days = if (!request.specificDays.isNullOrEmpty()) {
-            request.specificDays
-        } else if (request.consecutiveDays) {
+        val days = if (request.consecutiveDays) {
             listOf("Lunes", "Martes", "Miércoles")
         } else {
             listOf("Lunes", "Miércoles", "Viernes")
         }
         val routines = mutableListOf<RoutineEntity>()
-        val globalUsedNames: MutableSet<String> = mutableSetOf()
+        val globalUsedExercises: MutableSet<Long> = mutableSetOf()
 
         days.forEachIndexed { index, day ->
-            val routineName = when (request.goal) {
-                FitnessGoal.WEIGHT_LOSS -> "Cuerpo Completo - Pérdida de Peso $day"
-                FitnessGoal.MUSCLE_GAIN -> "Cuerpo Completo - Hipertrofia $day"
-                FitnessGoal.STRENGTH -> "Cuerpo Completo - Fuerza $day"
-                else -> "Cuerpo Completo $day"
-            }
+            // Asignar fase DUP para este día
+            val phase = smartAnalyzer.assignPhaseForDay(index, days.size)
+            
+            val routineName = "Cuerpo Completo - ${phase.spanishName} $day"
 
             var selectedExercises = selectBalancedExercises(
                 exercises = exercises,
                 equipmentFilter = request.equipment,
-                targetCount = 6, // 6 ejercicios por sesión
+                targetCount = calculateTargetExerciseCount(request.sessionDuration),
                 physicalLimitations = request.physicalLimitations,
                 goal = request.goal,
                 level = request.level
             )
 
             // Evitar ejercicios repetidos en toda la semana
-            selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
+            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
 
-            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro pero mantener los ya seleccionados
-            if (selectedExercises.size < 6) {
-                val currentNames = selectedExercises.map { it.name }.toSet()
-                val additional = exercises
-                    .filterNot { globalUsedNames.contains(it.name) }
-                    .filterNot { currentNames.contains(it.name) }
-                    .take(6 - selectedExercises.size)
-                selectedExercises = selectedExercises + additional
+            // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
+            if (selectedExercises.size < calculateTargetExerciseCount(request.sessionDuration)) {
+                selectedExercises = exercises.filterNot { globalUsedExercises.contains(it.id) }.take(calculateTargetExerciseCount(request.sessionDuration))
             }
 
             val routineId = createRoutineWithExercises(
@@ -117,14 +102,15 @@ class RoutineGeneratorUseCase @Inject constructor(
                 exercises = selectedExercises,
                 goal = request.goal,
                 level = request.level,
-                duration = request.sessionDuration
+                duration = request.sessionDuration,
+                phase = phase
             )
 
             routines.add(RoutineEntity(
                 id = routineId,
                 userId = userId,
                 name = routineName,
-                description = "Rutina de cuerpo completo optimizada para ${request.goal.toSpanish()}",
+                description = "Rutina de cuerpo completo - ${phase.spanishName}: ${getPhaseDescription(phase)}",
                 daysOfWeek = "[\"$day\"]",
                 isActive = true,
                 isAIGenerated = true,
@@ -134,7 +120,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                 createdAt = System.currentTimeMillis()
             ))
 
-            globalUsedNames.addAll(selectedExercises.map { it.name })
+            globalUsedExercises.addAll(selectedExercises.map { it.id })
         }
 
         return routines
@@ -167,9 +153,12 @@ class RoutineGeneratorUseCase @Inject constructor(
         val routines = mutableListOf<RoutineEntity>()
         
     var previousMuscleGroups: List<String> = emptyList()
-    var previousExercises: Set<String> = emptySet()
-    val globalUsedNames: MutableSet<String> = mutableSetOf()
-    days.zip(splits).forEach { (day, split) ->
+    var previousExercises: Set<Long> = emptySet()
+    val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+    days.zip(splits).forEachIndexed { dayIndex, (day, split) ->
+            // Asignar fase DUP para este día
+            val phase = smartAnalyzer.assignPhaseForDay(dayIndex, days.size)
+            
             val muscleGroups = when (split) {
                 "Push" -> listOf("Pecho", "Hombros", "Tríceps")
                 "Pull" -> listOf("Espalda", "Bíceps")
@@ -193,38 +182,38 @@ class RoutineGeneratorUseCase @Inject constructor(
             selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
 
             // Evitar ejercicios repetidos en toda la semana
-            selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
+            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
 
             // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
             if (selectedExercises.size < 5) {
                 selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
-                selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
+                selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
             }
             if (selectedExercises.size < 3) {
                 selectedExercises = filterByPhysicalLimitations(
                     filterByEquipment(exercises, request.equipment),
                     request.physicalLimitations
-                ).filterNot { globalUsedNames.contains(it.name) }
+                ).filterNot { globalUsedExercises.contains(it.id) }
             }
 
-            selectedExercises = selectedExercises
-                .distinctBy { it.name.trim().lowercase() }
-                .take(7)
+            selectedExercises = selectedExercises.take(calculateTargetExerciseCount(request.sessionDuration))
 
+            val routineName = "$split ${phase.spanishName} - $day"
             val routineId = createRoutineWithExercises(
                 userId = userId,
-                name = "$split - $day",
+                name = routineName,
                 exercises = selectedExercises,
                 goal = request.goal,
                 level = request.level,
-                duration = request.sessionDuration
+                duration = request.sessionDuration,
+                phase = phase
             )
 
             routines.add(RoutineEntity(
                 id = routineId,
                 userId = userId,
-                name = "$split - $day",
-                description = "Enfoque en ${effectiveMuscleGroups.joinToString(", ")}",
+                name = routineName,
+                description = "${phase.spanishName}: ${effectiveMuscleGroups.joinToString(", ")}",
                 daysOfWeek = "[\"$day\"]",
                 isActive = true,
                 isAIGenerated = true,
@@ -235,8 +224,8 @@ class RoutineGeneratorUseCase @Inject constructor(
             ))
 
             previousMuscleGroups = muscleGroups
-            previousExercises = selectedExercises.map { it.name }.toSet()
-            globalUsedNames.addAll(selectedExercises.map { it.name })
+            previousExercises = selectedExercises.map { it.id }.toSet()
+            globalUsedExercises.addAll(selectedExercises.map { it.id })
         }
 
         return routines
@@ -255,9 +244,12 @@ class RoutineGeneratorUseCase @Inject constructor(
         val routines = mutableListOf<RoutineEntity>()
         
     var previousMuscleGroups: List<String> = emptyList()
-    var previousExercises: Set<String> = emptySet()
-    val globalUsedNames: MutableSet<String> = mutableSetOf()
-    days.zip(splits).forEach { (day, split) ->
+    var previousExercises: Set<Long> = emptySet()
+    val globalUsedExercises: MutableSet<Long> = mutableSetOf()
+    days.zip(splits).forEachIndexed { dayIndex, (day, split) ->
+            // Asignar fase DUP para este día
+            val phase = smartAnalyzer.assignPhaseForDay(dayIndex, days.size)
+            
             val muscleGroups = if (split == "Superior") {
                 listOf("Pecho", "Espalda", "Hombros", "Brazos")
             } else {
@@ -280,38 +272,38 @@ class RoutineGeneratorUseCase @Inject constructor(
             selectedExercises = filterByPhysicalLimitations(selectedExercises, request.physicalLimitations)
 
             // Evitar ejercicios repetidos en toda la semana
-            selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
+            selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
 
             // FALLBACK: Si no hay suficientes ejercicios, relajar el filtro
             if (selectedExercises.size < 5) {
                 selectedExercises = filterByPhysicalLimitations(muscleFiltered, request.physicalLimitations)
-                selectedExercises = selectedExercises.filterNot { globalUsedNames.contains(it.name) }
+                selectedExercises = selectedExercises.filterNot { globalUsedExercises.contains(it.id) }
             }
             if (selectedExercises.size < 3) {
                 selectedExercises = filterByPhysicalLimitations(
                     filterByEquipment(exercises, request.equipment),
                     request.physicalLimitations
-                ).filterNot { globalUsedNames.contains(it.name) }
+                ).filterNot { globalUsedExercises.contains(it.id) }
             }
 
-            selectedExercises = selectedExercises
-                .distinctBy { it.name.trim().lowercase() }
-                .take(7)
+            selectedExercises = selectedExercises.take(calculateTargetExerciseCount(request.sessionDuration))
 
+            val routineName = "Tren $split ${phase.spanishName} - $day"
             val routineId = createRoutineWithExercises(
                 userId = userId,
-                name = "Tren $split - $day",
+                name = routineName,
                 exercises = selectedExercises,
                 goal = request.goal,
                 level = request.level,
-                duration = request.sessionDuration
+                duration = request.sessionDuration,
+                phase = phase
             )
 
             routines.add(RoutineEntity(
                 id = routineId,
                 userId = userId,
-                name = "Tren $split - $day",
-                description = "Entrenamiento de tren ${split.lowercase()}",
+                name = routineName,
+                description = "${phase.spanishName}: Entrenamiento de tren ${split.lowercase()}",
                 daysOfWeek = "[\"$day\"]",
                 isActive = true,
                 isAIGenerated = true,
@@ -322,8 +314,8 @@ class RoutineGeneratorUseCase @Inject constructor(
             ))
 
             previousMuscleGroups = muscleGroups
-            previousExercises = selectedExercises.map { it.name }.toSet()
-            globalUsedNames.addAll(selectedExercises.map { it.name })
+            previousExercises = selectedExercises.map { it.id }.toSet()
+            globalUsedExercises.addAll(selectedExercises.map { it.id })
         }
 
         return routines
@@ -354,6 +346,14 @@ class RoutineGeneratorUseCase @Inject constructor(
         val selected = mutableListOf<ExerciseEntity>()
         val musclesWorked = mutableMapOf<String, Int>()
         
+        // FATIGA DEL CNS: Gestión de energía
+        val maxFatigue = when(level) {
+            FitnessLevel.BEGINNER -> 15
+            FitnessLevel.INTERMEDIATE -> 24
+            FitnessLevel.ADVANCED -> 35
+        }
+        var currentFatigue = 0
+        
         // ANÁLISIS INTELIGENTE: Priorizar grupos musculares importantes
         val priorities = listOf(
             "Piernas" to 2,    // 2 ejercicios de piernas
@@ -364,9 +364,12 @@ class RoutineGeneratorUseCase @Inject constructor(
         )
         
         priorities.forEach { (muscle, count) ->
-            val muscleExercises = filtered
+            // Si ya tenemos suficientes, no agregar más de esta prioridad
+            if (selected.size >= targetCount) return@forEach
+
+            val candidates = filtered
                 .filter { it.muscleGroup.contains(muscle, ignoreCase = true) }
-                .filter { exercise -> selected.none { it.name.trim().equals(exercise.name.trim(), ignoreCase = true) } } // Evitar duplicados por NOMBRE (robusto)
+                .filter { it !in selected }
                 .map { exercise ->
                     val suitability = smartAnalyzer.calculateExerciseSuitability(
                         exercise = exercise,
@@ -377,18 +380,27 @@ class RoutineGeneratorUseCase @Inject constructor(
                     )
                     exercise to suitability
                 }
+                .filter { (ex, _) -> 
+                    // Verificar límite de fatiga
+                    val fatigue = smartAnalyzer.calculateFatigueScore(ex)
+                    currentFatigue + fatigue <= maxFatigue
+                }
                 .sortedByDescending { it.second }
-                .take(count)
-                .map { it.first }
             
-            selected.addAll(muscleExercises)
-            musclesWorked[muscle] = (musclesWorked[muscle] ?: 0) + muscleExercises.size
+            // Selección ponderada (Weighted Random) para variedad
+            val picked = selectWeighted(candidates, count)
+            
+            selected.addAll(picked)
+            picked.forEach { 
+                musclesWorked[muscle] = (musclesWorked[muscle] ?: 0) + 1
+                currentFatigue += smartAnalyzer.calculateFatigueScore(it)
+            }
         }
         
-        // FALLBACK: Si aún no tenemos suficientes, rellenar con los mejores ejercicios disponibles
-        if (selected.size < targetCount) {
-            val remaining = filtered
-                .filterNot { exercise -> selected.any { it.name.trim().equals(exercise.name.trim(), ignoreCase = true) } }
+        // Rellenar slots restantes
+        while (selected.size < targetCount) {
+            val candidates = filtered
+                .filterNot { it in selected }
                 .map { exercise ->
                     val suitability = smartAnalyzer.calculateExerciseSuitability(
                         exercise = exercise,
@@ -399,22 +411,81 @@ class RoutineGeneratorUseCase @Inject constructor(
                     )
                     exercise to suitability
                 }
+                .filter { (ex, _) -> 
+                    // En relleno, ser más flexibles con fatiga si es necesario, 
+                    // pero intentar respetarlo si hay opciones
+                    val fatigue = smartAnalyzer.calculateFatigueScore(ex)
+                    currentFatigue + fatigue <= maxFatigue
+                }
                 .sortedByDescending { it.second }
-                .take(targetCount - selected.size)
-                .map { it.first }
             
-            selected.addAll(remaining)
+            if (candidates.isEmpty()) {
+                // Si no hay candidatos por fatiga, tomar cualquiera (fallback)
+                val fallbackCandidates = filtered
+                    .filterNot { it in selected }
+                    .map { it to 0.5 }
+                
+                if (fallbackCandidates.isNotEmpty()) {
+                    val picked = selectWeighted(fallbackCandidates, 1)
+                    selected.addAll(picked)
+                } else {
+                    break // No hay más ejercicios disponibles
+                }
+            } else {
+                val picked = selectWeighted(candidates, 1)
+                selected.addAll(picked)
+                picked.forEach { 
+                     currentFatigue += smartAnalyzer.calculateFatigueScore(it)
+                }
+            }
         }
         
-        // Verificar balance push/pull
-        val pushPullAnalysis = smartAnalyzer.analyzePushPullRatio(selected)
-        
-        // Final deduplication just in case
-        return selected.distinctBy { it.name.trim().lowercase() }.take(targetCount)
+        return selected.take(targetCount)
     }
 
     /**
+     * Selecciona items aleatoriamente basándose en su peso (score)
+     * Cuanto mayor score, mayor probabilidad, pero no garantizado.
+     */
+    private fun selectWeighted(
+        candidates: List<Pair<ExerciseEntity, Double>>,
+        count: Int
+    ): List<ExerciseEntity> {
+        val selected = mutableListOf<ExerciseEntity>()
+        val mutableCandidates = candidates.toMutableList()
+
+        repeat(count) {
+            if (mutableCandidates.isEmpty()) return@repeat
+            
+            // Filtrar scores muy bajos para no seleccionar basura, pero permitir variedad
+            // O simplemente usar el score tal cual
+            
+            val totalScore = mutableCandidates.sumOf { it.second }
+            if (totalScore <= 0.0) {
+                // Si todos tienen 0, elegir al azar uniforme
+                val pick = mutableCandidates.random()
+                selected.add(pick.first)
+                mutableCandidates.remove(pick)
+            } else {
+                val randomValue = Random.nextDouble() * totalScore
+                var currentSum = 0.0
+                
+                val pick = mutableCandidates.firstOrNull { 
+                    currentSum += it.second
+                    currentSum >= randomValue
+                } ?: mutableCandidates.last()
+                
+                selected.add(pick.first)
+                mutableCandidates.remove(pick)
+            }
+        }
+        
+        return selected
+    }
+    
+    /**
      * Crea la rutina y sus ejercicios con sets/reps óptimos
+     * Usa periodización DUP cuando se proporciona una fase
      */
     private suspend fun createRoutineWithExercises(
         userId: Long,
@@ -422,7 +493,8 @@ class RoutineGeneratorUseCase @Inject constructor(
         exercises: List<ExerciseEntity>,
         goal: FitnessGoal,
         level: FitnessLevel,
-        duration: Int
+        duration: Int,
+        phase: TrainingPhase? = null
     ): Long {
         // Crear rutina
         val routineId = routineRepository.insertRoutine(
@@ -430,7 +502,7 @@ class RoutineGeneratorUseCase @Inject constructor(
                 id = 0,
                 userId = userId,
                 name = name,
-                description = "Generado automáticamente",
+                description = if (phase != null) "${phase.spanishName}: ${getPhaseDescription(phase)}" else "Generado automáticamente",
                 daysOfWeek = "[]",
                 isActive = true,
                 isAIGenerated = true,
@@ -441,48 +513,43 @@ class RoutineGeneratorUseCase @Inject constructor(
             )
         )
         
-        // Obtener fase de periodización actual
-        val currentPhase = periodizationManager.getCurrentPhase(userId).first()
-        val volumeSettings = currentPhase?.let { periodizationManager.getVolumeForPhase(it.phaseName) }
-        
-        // Agregar ejercicios con parámetros optimizados
+        // Agregar ejercicios con parámetros optimizados según fase DUP
         exercises.forEachIndexed { index, exercise ->
-            val (defaultSets, defaultReps) = calculateOptimalVolume(goal, level, exercise.exerciseType)
+            val isCompound = exercise.exerciseType == "Compuesto"
             
-            // Aplicar periodización si existe
-            val finalSets = volumeSettings?.sets ?: defaultSets
-            val finalReps = volumeSettings?.reps ?: "$defaultReps"
-            val finalRest = volumeSettings?.restSeconds ?: calculateRestTime(goal, exercise.exerciseType, level)
-            
-            // SUGERENCIA INTELIGENTE: Calcular peso sugerido
-            // Parsear el rango de reps para obtener un objetivo numérico (usamos el promedio)
-            val targetRepsInt = if (finalReps.contains("-")) {
-                val parts = finalReps.split("-")
-                (parts[0].toInt() + parts[1].toInt()) / 2
+            val (sets, repsRange, restTime) = if (phase != null) {
+                // Usar periodización DUP
+                val vol = smartAnalyzer.calculateVolumeForPhase(phase, level, isCompound)
+                Triple(vol.sets, "${vol.repsMin}-${vol.repsMax}", vol.rest)
             } else {
-                finalReps.toIntOrNull() ?: defaultReps
+                // Método legacy basado en objetivo
+                val (s, r) = calculateOptimalVolume(goal, level, exercise.exerciseType)
+                Triple(s, "$r", calculateRestTime(goal, exercise.exerciseType, level))
             }
-
-            val suggestedWeight = progressAnalyzer.suggestNextWeight(
-                exerciseId = exercise.id,
-                userId = userId,
-                targetReps = targetRepsInt
-            )
             
             routineRepository.addExerciseToRoutine(
                 RoutineExerciseEntity(
                     routineId = routineId,
                     exerciseId = exercise.id,
                     orderIndex = index,
-                    plannedSets = finalSets,
-                    plannedReps = finalReps,
-                    plannedWeight = if (suggestedWeight > 0) suggestedWeight else null,
-                    restTimeSeconds = finalRest
+                    plannedSets = sets,
+                    plannedReps = repsRange,
+                    restTimeSeconds = restTime
                 )
             )
         }
         
         return routineId
+    }
+
+    /**
+     * Descripción de cada fase de entrenamiento DUP
+     */
+    private fun getPhaseDescription(phase: TrainingPhase): String = when (phase) {
+        TrainingPhase.STRENGTH -> "Peso pesado, pocas reps. Desarrolla fuerza máxima."
+        TrainingPhase.HYPERTROPHY -> "Peso moderado, reps medianas. Maximiza crecimiento muscular."
+        TrainingPhase.ENDURANCE -> "Peso ligero, muchas reps. Mejora resistencia muscular."
+        TrainingPhase.DELOAD -> "Semana de descarga. Reduce volumen para recuperación."
     }
     
     /**
@@ -576,5 +643,14 @@ class RoutineGeneratorUseCase @Inject constructor(
         FitnessLevel.BEGINNER -> "Principiante"
         FitnessLevel.INTERMEDIATE -> "Intermedio"
         FitnessLevel.ADVANCED -> "Avanzado"
+    }
+    private fun calculateTargetExerciseCount(durationMinutes: Int): Int {
+        return when {
+            durationMinutes <= 30 -> 4  // Sesión rápida (3-4 ejercicios)
+            durationMinutes <= 45 -> 5  // Sesión media (4-5 ejercicios)
+            durationMinutes <= 60 -> 6  // Sesión estándar (5-6 ejercicios)
+            durationMinutes <= 75 -> 7  // Sesión larga (6-7 ejercicios)
+            else -> 8                   // Sesión muy larga (7-8 ejercicios)
+        }
     }
 }

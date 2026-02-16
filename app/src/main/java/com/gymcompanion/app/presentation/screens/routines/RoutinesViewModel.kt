@@ -2,6 +2,7 @@ package com.gymcompanion.app.presentation.screens.routines
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gymcompanion.app.data.local.entity.ExerciseEntity
 import com.gymcompanion.app.data.local.entity.RoutineEntity
 import com.gymcompanion.app.data.local.entity.RoutineExerciseEntity
 import com.gymcompanion.app.data.local.entity.RoutineWithExercises
@@ -47,6 +48,10 @@ class RoutinesViewModel @Inject constructor(
     // Rutina seleccionada para edición
     private val _selectedRoutine = MutableStateFlow<RoutineWithExercises?>(null)
     val selectedRoutine: StateFlow<RoutineWithExercises?> = _selectedRoutine.asStateFlow()
+
+    // Ejercicios alternativos para intercambio
+    private val _alternativeExercises = MutableStateFlow<List<ExerciseEntity>>(emptyList())
+    val alternativeExercises: StateFlow<List<ExerciseEntity>> = _alternativeExercises.asStateFlow()
     
     /**
      * Crea una nueva rutina con ejercicios generados automáticamente
@@ -74,8 +79,7 @@ class RoutinesViewModel @Inject constructor(
                     height = null,
                     experienceLevel = null,
                     preferences = null,
-                    restrictions = null,
-                    specificDays = daysOfWeek
+                    restrictions = null
                 )
                 
                 // Generar rutinas con ejercicios automáticamente
@@ -106,7 +110,7 @@ class RoutinesViewModel @Inject constructor(
                     userId = 1L, // TODO: Get actual user ID
                     name = name,
                     description = description,
-                    daysOfWeek = daysOfWeek.joinToString(prefix = "[\"", separator = "\",\"", postfix = "\"]"),
+                    daysOfWeek = daysOfWeek.joinToString(","),
                     duration = 60, // TODO: Calculate from exercises
                     focusArea = "general_fitness",
                     difficulty = "intermediate",
@@ -178,6 +182,52 @@ class RoutinesViewModel @Inject constructor(
                 routineRepository.removeExerciseFromRoutine(routineExercise)
             } catch (e: Exception) {
                 _uiState.value = RoutinesUiState.Error(e.message ?: "Error al eliminar ejercicio")
+            }
+        }
+    }
+
+    /**
+     * Carga ejercicios alternativos basados en el grupo muscular
+     */
+    fun loadAlternativesForExercise(exercise: ExerciseEntity) {
+        viewModelScope.launch {
+            try {
+                // Buscamos ejercicios del mismo grupo muscular principal
+                // Parseamos el muscleGroup por si es una lista separada por comas
+                val primaryMuscle = exercise.muscleGroup.split(",").firstOrNull()?.trim() ?: exercise.muscleGroup
+                
+                exerciseRepository.getExercisesByMuscleGroup(primaryMuscle)
+                    .collect { exercises ->
+                        // Filtramos el ejercicio actual y ordenamos alfabéticamente
+                        _alternativeExercises.value = exercises
+                            .filter { it.id != exercise.id }
+                            .sortedBy { it.name }
+                    }
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error("Error al cargar alternativas: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Reemplaza un ejercicio en una rutina manteniendo la configuración
+     */
+    fun replaceExerciseInRoutine(
+        routineExercise: RoutineExerciseEntity,
+        newExercise: ExerciseEntity
+    ) {
+        viewModelScope.launch {
+            try {
+                // Actualizamos solo el ID del ejercicio, manteniendo series, reps y orden
+                val updatedRoutineExercise = routineExercise.copy(
+                    exerciseId = newExercise.id
+                )
+                routineRepository.updateRoutineExercise(updatedRoutineExercise)
+                
+                // Limpiamos la lista de alternativas
+                _alternativeExercises.value = emptyList()
+            } catch (e: Exception) {
+                _uiState.value = RoutinesUiState.Error(e.message ?: "Error al reemplazar ejercicio")
             }
         }
     }

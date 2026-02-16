@@ -1,80 +1,102 @@
-# 🛠️ Solución al Error AAPT2 en Linux ARM64 (Orange Pi / Raspberry Pi)
+# 🛠️ Solución Definitiva: Error AAPT2 en Linux ARM64 (Orange Pi / Raspberry Pi)
 
-Este documento detalla la solución para el error de compilación relacionado con `aapt2` y `libdl.so.2` que ocurre al intentar compilar proyectos Android en dispositivos Linux con arquitectura ARM64 (aarch64), como Orange Pi, Raspberry Pi o Chromebooks.
+Este documento detalla la solución **permanente** para el error de compilación relacionado con `aapt2` y `libdl.so.2` que ocurre al compilar proyectos Android en dispositivos Linux con arquitectura ARM64 (aarch64).
 
 ## 🚨 El Problema
 
-Al compilar el proyecto con `./gradlew assembleDebug`, la compilación falla con un error similar a este:
+Al compilar con `./gradlew assembleDebug`, la compilación falla con:
 
 ```text
 Execution failed for task ':app:processDebugResources'.
-> A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
-   > Android resource linking failed
-     AAPT2 aapt2-8.2.0-10154469-linux Daemon #0: Daemon startup failed
-     java.io.IOException: ... error while loading shared libraries: libdl.so.2: cannot open shared object file: No such file or directory
-```
-
-O a veces:
-```text
-wrong ELF class: ELFCLASS64
+> AAPT2 aapt2-8.2.0-10154469-linux Daemon #0: Daemon startup failed
+  java.io.IOException: error while loading shared libraries: libdl.so.2: cannot open shared object file
 ```
 
 ### 🔍 Causa Raíz
-Google **no distribuye oficialmente** binarios de `aapt2` (Android Asset Packaging Tool 2) para Linux ARM64 en su repositorio Maven. Gradle descarga automáticamente la versión para `linux-x86_64` (Intel/AMD 64-bit), que es incompatible con procesadores ARM64.
+Google **no distribuye** binarios de `aapt2` para Linux ARM64 en Maven. Gradle descarga automáticamente la versión `linux-x86_64`, que es incompatible con procesadores ARM64.
 
-## ✅ La Solución
+---
 
-La solución consiste en reemplazar manualmente el binario `aapt2` incompatible (x86-64) que Gradle descargó en su caché, por una versión compilada por la comunidad para ARM64.
+## ✅ Solución Definitiva (Recomendada)
 
-### Pasos para Aplicar el Fix
+Usar el paquete `aapt` del sistema operativo + la propiedad `aapt2FromMavenOverride` de Gradle. **Esta solución persiste entre limpiezas de caché.**
 
-#### 1. Localizar el binario incompatible
-Gradle guarda `aapt2` en su caché de transformaciones. Ejecuta el siguiente comando para encontrar dónde está:
-
-```bash
-find ~/.gradle/caches -name "aapt2"
-```
-
-Verás una o más rutas como esta:
-`/home/usuario/.gradle/caches/transforms-3/.../transformed/aapt2-8.2.0-10154469-linux/aapt2`
-
-#### 2. Descargar el binario compatible (ARM64)
-Utilizamos una versión compilada por la comunidad (gracias al repositorio `JonForShort/android-tools`).
-
-Descarga el binario `android-11.0.0_r33` para ARM64 (más compatible con versiones recientes):
+### Paso 1: Instalar aapt2 del sistema
 
 ```bash
-wget https://raw.githubusercontent.com/JonForShort/android-tools/master/build/android-11.0.0_r33/aapt2/arm64-v8a/bin/aapt2 -O aapt2_arm64
+sudo apt update && sudo apt install -y aapt
 ```
 
-#### 3. Reemplazar el archivo
-Copia el archivo descargado sobre el archivo que encontró Gradle en el paso 1.
+Verificar instalación:
+```bash
+aapt2 version
+# Debe mostrar: Android Asset Packaging Tool (aapt) 2.19-debian (o similar)
 
-> **Nota:** Si tienes múltiples versiones en el caché, es recomendable reemplazarlas todas o al menos la que corresponde a la versión que usa tu proyecto (en este caso 8.2.0).
+# Confirmar soporte de --source-path (requerido por AGP 8.x)
+aapt2 compile --help | grep source-path
+```
+
+### Paso 2: Localizar el binario
 
 ```bash
-# Ejemplo (Asegúrate de usar TU ruta específica del paso 1)
-cp aapt2_arm64 /home/usuario/.gradle/caches/transforms-3/.../transformed/aapt2-8.2.0-10154469-linux/aapt2
+which aapt2
+# Resultado típico: /usr/bin/aapt2
+
+# El binario real está en:
+readlink -f /usr/bin/aapt2
+# Resultado: /usr/lib/android-sdk/build-tools/debian/aapt2
 ```
 
-#### 4. Dar permisos de ejecución
-Asegúrate de que el nuevo binario sea ejecutable:
+### Paso 3: Agregar propiedad en `gradle.properties`
+
+Agregar esta línea al archivo `gradle.properties` del proyecto:
+
+```properties
+android.aapt2FromMavenOverride=/usr/lib/android-sdk/build-tools/debian/aapt2
+```
+
+> [!IMPORTANT]
+> Usa la ruta completa del binario real (no el symlink). Puedes obtenerla con `readlink -f $(which aapt2)`.
+
+### Paso 4: Limpiar caché de transforms (solo la primera vez)
 
 ```bash
-chmod +x /home/usuario/.gradle/caches/transforms-3/.../transformed/aapt2-8.2.0-10154469-linux/aapt2
+# Detener daemon de Gradle
+./gradlew --stop
+
+# Eliminar transforms viejos con aapt2 corrupto
+rm -rf ~/.gradle/caches/transforms-3
+
+# Compilar
+./gradlew clean assembleDebug
 ```
 
-#### 5. Verificar
-Intenta compilar de nuevo. El error de `libdl.so.2` debería desaparecer.
+### Paso 5: Verificar
 
 ```bash
 ./gradlew assembleDebug
+# Debe mostrar: BUILD SUCCESSFUL
+# (La advertencia "experimental" es normal y no afecta la compilación)
 ```
+
+---
 
 ## ⚠️ Notas Importantes
 
-- **Persistencia**: Si limpias el caché de Gradle (`./gradlew cleanBuildCache` o borras `~/.gradle/caches`), Gradle volverá a descargar la versión incorrecta (x86-64) y tendrás que repetir este proceso.
-- **CI/CD**: Si configuras un pipeline de integración continua en ARM64, deberás incluir un paso de script que realice este reemplazo automáticamente antes de compilar.
+- **Persistente**: Esta solución NO se pierde al limpiar caché de Gradle, ya que la propiedad está en `gradle.properties` y el binario viene del sistema operativo.
+- **Actualizaciones**: Si actualizas el paquete `aapt` del sistema (`sudo apt upgrade`), se actualiza automáticamente.
+- **CI/CD**: Solo necesitas `apt install aapt` en el pipeline + la propiedad en `gradle.properties`.
+- **Advertencia experimental**: Gradle muestra `WARNING: The option setting 'android.aapt2FromMavenOverride=...' is experimental` — esto es normal y no causa problemas.
 
 ---
-*Documento generado para Gym Companion - Solución de Compatibilidad ARM64*
+
+## ❌ Solución Vieja (NO recomendada)
+
+Anteriormente se reemplazaba manualmente el binario en `~/.gradle/caches/transforms-3/.../aapt2` con una versión ARM64 de la comunidad (android-11.0.0_r33). **Esta solución tiene problemas:**
+
+1. Se pierde al limpiar caché de Gradle
+2. La versión android-11 no soporta `--source-path` (requerido por AGP 8.x+)
+3. Requiere repetir el proceso manualmente cada vez
+
+---
+*Documento actualizado — Gym Companion — Solución Definitiva ARM64*

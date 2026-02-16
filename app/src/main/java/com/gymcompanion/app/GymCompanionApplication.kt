@@ -1,8 +1,8 @@
 package com.gymcompanion.app
 
 import android.app.Application
-
-
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -11,10 +11,18 @@ import javax.inject.Inject
  * Inicializa Hilt para inyección de dependencias y WorkManager
  */
 @HiltAndroidApp
-class GymCompanionApplication : Application() {
+class GymCompanionApplication : Application(), Configuration.Provider {
+    
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
     
     override fun onCreate() {
         super.onCreate()
         android.util.Log.d("GymCompanionApplication", "onCreate() called")
     }
+    
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 }

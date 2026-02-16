@@ -72,8 +72,8 @@ fun PlateCalculatorView(
                     )
                     Text(
                         text = when (equipment) {
-                            PlateCalculator.EquipmentType.DUMBBELL -> "${loadout.weightPerHand}kg c/u"
-                            else -> "${loadout.totalWeight}kg"
+                            PlateCalculator.EquipmentType.DUMBBELL -> "${loadout.weightPerHand}lbs c/u"
+                            else -> "${loadout.totalWeight}lbs"
                         },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
@@ -120,7 +120,7 @@ fun PlateCalculatorView(
                         )
                     } else {
                         Text(
-                            text = "Solo barra (${loadout.barWeight}kg)",
+                            text = "Solo barra (${loadout.barWeight}lbs)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -128,7 +128,7 @@ fun PlateCalculatorView(
                     
                     if (!loadout.isExact && loadout.difference > 0.1) {
                         Text(
-                            text = "⚠️ Faltan ${String.format("%.2f", loadout.difference)}kg para alcanzar el objetivo",
+                            text = "⚠️ Faltan ${String.format("%.2f", loadout.difference)}lbs para alcanzar el objetivo",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -148,7 +148,7 @@ fun PlateCalculatorView(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = "${loadout.weightPerHand}kg",
+                            text = "${loadout.weightPerHand}lbs",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -162,7 +162,7 @@ fun PlateCalculatorView(
                         )
                     }
                     Text(
-                        text = "Peso total: ${loadout.totalWeight}kg (${loadout.weightPerHand}kg × 2)",
+                        text = "Peso total: ${loadout.totalWeight}lbs (${loadout.weightPerHand}lbs × 2)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         textAlign = TextAlign.Center,

@@ -2,12 +2,15 @@ package com.gymcompanion.app.presentation.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,15 +19,308 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.gymcompanion.app.presentation.theme.*
+
+// ══════════════════════════════════════════════════════════════════
+// 🔮 PREMIUM GLASSMORPHIC COMPONENTS
+// ══════════════════════════════════════════════════════════════════
+
+/**
+ * Glassmorphic card with frosted glass effect and subtle border.
+ * Use for elevated content on dark backgrounds.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GlassmorphicCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    glowColor: Color = NeonBlue,
+    showGlow: Boolean = false,
+    borderColor: Color? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(20.dp)
+    
+    val borderModifier = if (borderColor != null) {
+        Modifier.border(1.dp, borderColor, shape)
+    } else {
+        Modifier.border(
+            width = 1.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    GlassBorder,
+                    GlassBorderSubtle
+                )
+            ),
+            shape = shape
+        )
+    }
+
+    Card(
+        modifier = modifier
+            .then(
+                if (showGlow) {
+                    Modifier.drawBehind {
+                        drawCircle(
+                            color = glowColor.copy(alpha = 0.08f),
+                            radius = size.maxDimension * 0.6f
+                        )
+                    }
+                } else Modifier
+            )
+            .then(borderModifier),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = GlassWhite
+        ),
+        onClick = onClick ?: {}
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            content = content
+        )
+    }
+}
+
+/**
+ * Card with neon gradient border glow effect.
+ * Use for highlighted/featured content like today's workout.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NeonGradientCard(
+    modifier: Modifier = Modifier,
+    gradientColors: Pair<Color, Color> = GradientPrimary,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(20.dp)
+    val pulseAlpha = rememberPulseAlpha(minAlpha = 0.4f, maxAlpha = 0.8f, durationMs = 2000)
+
+    Card(
+        modifier = modifier
+            .drawBehind {
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            gradientColors.first.copy(alpha = pulseAlpha * 0.15f),
+                            gradientColors.second.copy(alpha = pulseAlpha * 0.1f)
+                        )
+                    ),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx())
+                )
+            }
+            .border(
+                width = 1.5.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        gradientColors.first.copy(alpha = 0.6f),
+                        gradientColors.second.copy(alpha = 0.3f)
+                    )
+                ),
+                shape = shape
+            ),
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = DarkSurfaceElevated
+        ),
+        onClick = onClick ?: {}
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            content = content
+        )
+    }
+}
+
+/**
+ * Pulsing "Start Workout" button with neon glow effect.
+ */
+@Composable
+fun PulsingWorkoutButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.PlayArrow,
+    gradientColors: Pair<Color, Color> = GradientPrimary
+) {
+    val pulseScale = rememberPulseScale(minScale = 1f, maxScale = 1.03f, durationMs = 1800)
+    val pulseAlpha = rememberPulseAlpha(minAlpha = 0.3f, maxAlpha = 0.7f, durationMs = 1800)
+
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(56.dp)
+            .scale(pulseScale)
+            .drawBehind {
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            gradientColors.first.copy(alpha = pulseAlpha * 0.3f),
+                            gradientColors.second.copy(alpha = pulseAlpha * 0.2f)
+                        )
+                    ),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx()),
+                    size = Size(size.width + 8.dp.toPx(), size.height + 8.dp.toPx()),
+                    topLeft = Offset(-4.dp.toPx(), -4.dp.toPx())
+                )
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(gradientColors.first, gradientColors.second)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Neon arc progress ring — custom Canvas-drawn circular progress indicator
+ * with gradient arc and optional center content.
+ */
+@Composable
+fun NeonProgressRing(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    size: Dp = 100.dp,
+    strokeWidth: Dp = 8.dp,
+    gradientColors: Pair<Color, Color> = GradientPrimary,
+    trackColor: Color = DarkSurfaceBorder,
+    centerContent: @Composable () -> Unit = {}
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(1000, easing = FastOutSlowInEasing),
+        label = "neonProgress"
+    )
+
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokePx = strokeWidth.toPx()
+            val arcSize = Size(
+                this.size.width - strokePx,
+                this.size.height - strokePx
+            )
+            val topLeft = Offset(strokePx / 2, strokePx / 2)
+
+            // Background track
+            drawArc(
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokePx, cap = StrokeCap.Round)
+            )
+
+            // Neon gradient arc
+            drawArc(
+                brush = Brush.sweepGradient(
+                    colors = listOf(
+                        gradientColors.first,
+                        gradientColors.second,
+                        gradientColors.first
+                    )
+                ),
+                startAngle = -90f,
+                sweepAngle = 360f * animatedProgress,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokePx, cap = StrokeCap.Round)
+            )
+        }
+
+        // Center content (text, icons, etc.)
+        centerContent()
+    }
+}
+
+/**
+ * Section header with optional "See All" action
+ */
+@Composable
+fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    action: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+        if (action != null && onAction != null) {
+            TextButton(onClick = onAction) {
+                Text(
+                    text = action,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = NeonBlue
+                )
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 📦 EXISTING COMPONENTS (Backward-compatible)
+// ══════════════════════════════════════════════════════════════════
 
 /**
  * Card moderno con glassmorphism y animación
@@ -196,7 +492,7 @@ fun ModernButton(
 }
 
 /**
- * Card con estadística animada y tendencia
+ * Card con estadística animada
  */
 @Composable
 fun StatCard(
@@ -209,11 +505,7 @@ fun StatCard(
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
     iconBackgroundColor: Color = MaterialTheme.colorScheme.primary,
     iconColor: Color = MaterialTheme.colorScheme.onPrimary,
-    animate: Boolean = true,
-    // Trend parameters
-    trendDirection: com.gymcompanion.app.domain.usecase.TrendDirection? = null,
-    trendPercentage: Double? = null,
-    showTrend: Boolean = true
+    animate: Boolean = true
 ) {
     var visible by remember { mutableStateOf(false) }
     
@@ -254,59 +546,12 @@ fun StatCard(
                         color = contentColor.copy(alpha = 0.8f)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Value with trend indicator
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Parse value for animation
-                        val numberRegex = "([0-9]+[.,]?[0-9]*)".toRegex()
-                        val match = numberRegex.find(value)
-                        
-                        if (animate && match != null) {
-                            val numberStr = match.value.replace(",", ".")
-                            val number = numberStr.toDoubleOrNull() ?: 0.0
-                            val suffix = value.substring(match.range.last + 1)
-                            val prefix = value.substring(0, match.range.first)
-                            
-                            val animatedNumber by animateFloatAsState(
-                                targetValue = if (visible) number.toFloat() else 0f,
-                                animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-                                label = "count_up"
-                            )
-                            
-                            val displayValue = if (number % 1.0 == 0.0) {
-                                "${animatedNumber.toInt()}"
-                            } else {
-                                String.format("%.1f", animatedNumber)
-                            }
-                            
-                            Text(
-                                text = "$prefix$displayValue$suffix",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = contentColor
-                            )
-                        } else {
-                            Text(
-                                text = value,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = contentColor
-                            )
-                        }
-                        
-                        // Trend indicator
-                        if (showTrend && trendDirection != null && trendPercentage != null) {
-                            TrendIndicator(
-                                direction = trendDirection,
-                                percentage = trendPercentage,
-                                contentColor = contentColor
-                            )
-                        }
-                    }
-                    
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor
+                    )
                     subtitle?.let {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -332,75 +577,6 @@ fun StatCard(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * Indicador de tendencia con animación
- */
-@Composable
-fun TrendIndicator(
-    direction: com.gymcompanion.app.domain.usecase.TrendDirection,
-    percentage: Double,
-    contentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    val (icon, color, text) = when (direction) {
-        com.gymcompanion.app.domain.usecase.TrendDirection.IMPROVING -> Triple(
-            Icons.Default.TrendingUp,
-            Color(0xFF4CAF50), // Green
-            "+${String.format("%.1f", kotlin.math.abs(percentage))}%"
-        )
-        com.gymcompanion.app.domain.usecase.TrendDirection.DECLINING -> Triple(
-            Icons.Default.TrendingDown,
-            Color(0xFFF44336), // Red
-            "${String.format("%.1f", percentage)}%"
-        )
-        com.gymcompanion.app.domain.usecase.TrendDirection.STABLE -> Triple(
-            Icons.Default.TrendingFlat,
-            contentColor.copy(alpha = 0.6f),
-            "0%"
-        )
-    }
-    
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(300)
-        visible = true
-    }
-    
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(400)) + scaleIn(
-            initialScale = 0.8f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        ),
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(color.copy(alpha = 0.15f))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
         }
     }
 }
@@ -829,12 +1005,22 @@ fun WorkoutStreakCalendar(
 
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)
                         .scale(scale)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(
-                            if (completed) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surfaceVariant
+                        .clip(RoundedCornerShape(8.dp))
+                        .then(
+                            if (completed) {
+                                Modifier.background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.secondary
+                                        )
+                                    )
+                                )
+                            } else {
+                                Modifier.background(color = MaterialTheme.colorScheme.surfaceVariant)
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -842,7 +1028,7 @@ fun WorkoutStreakCalendar(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
@@ -1378,36 +1564,5 @@ fun GoalProgressItem(
             color = color,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
-    }
-}
-
-/**
- * Contenedor para animación escalonada de entrada
- */
-@Composable
-fun StaggeredEntrance(
-    index: Int,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(index * 100L)
-        visible = true
-    }
-    
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(500)) + slideInVertically(
-            initialOffsetY = { 50 },
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        ),
-        modifier = modifier
-    ) {
-        content()
     }
 }

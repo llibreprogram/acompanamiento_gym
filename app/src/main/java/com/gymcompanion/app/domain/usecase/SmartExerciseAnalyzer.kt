@@ -260,9 +260,95 @@ class SmartExerciseAnalyzer @Inject constructor() {
             }
         )
     }
+    /**
+     * Calcula el índice de fatiga del sistema nervioso central (CNS) para un ejercicio
+     * Rango: 0-10
+     */
+    fun calculateFatigueScore(exercise: ExerciseEntity): Int {
+        val isCompound = exercise.exerciseType == "Compuesto"
+        val isLegs = exercise.muscleGroup.contains("Piernas", ignoreCase = true) || 
+                     exercise.muscleGroup.contains("Legs", ignoreCase = true)
+        val isBack = exercise.muscleGroup.contains("Espalda", ignoreCase = true) ||
+                     exercise.muscleGroup.contains("Back", ignoreCase = true)
+        
+        return when {
+            // Ejercicios taxativos (Sentadilla, Peso Muerto)
+            isCompound && (isLegs || isBack) -> 10
+            // Ejercicios compuestos de tren superior (Press Banca, Dominadas, Press Militar)
+            isCompound -> 6
+            // Ejercicios de aislamiento de piernas (Extensión cuádriceps, Curl femoral)
+            isLegs -> 4
+            // Resto de ejercicios de aislamiento (Curl bíceps, Elevaciones laterales)
+            else -> 2
+        }
+    }
+
+    /**
+     * Calcula volumen óptimo según fase de periodización DUP
+     * 
+     * Periodización Ondulante Diaria (DUP):
+     * - STRENGTH: 4-6 series × 3-6 reps @ 85-90% 1RM, descanso 180s
+     * - HYPERTROPHY: 3-4 series × 8-12 reps @ 70-75% 1RM, descanso 90s
+     * - ENDURANCE: 2-3 series × 15-20 reps @ 50-60% 1RM, descanso 45s
+     * - DELOAD: 2-3 series × 10-15 reps @ 50% 1RM, descanso 60s
+     */
+    fun calculateVolumeForPhase(
+        phase: TrainingPhase,
+        level: FitnessLevel,
+        isCompound: Boolean
+    ): VolumeRecommendation {
+        val (setsMin, setsMax) = phase.getSetsRange()
+        val (repsMin, repsMax) = phase.getRepsRange()
+        val rest = phase.getRestSeconds()
+
+        // Ajustar series para aislamiento
+        val baseSets = if (isCompound) setsMax else setsMin
+
+        // Ajustar por nivel
+        val adjustedSets = when (level) {
+            FitnessLevel.BEGINNER -> (baseSets - 1).coerceAtLeast(2)
+            FitnessLevel.INTERMEDIATE -> baseSets
+            FitnessLevel.ADVANCED -> baseSets + 1
+        }
+
+        // Ajustar descanso por nivel
+        val adjustedRest = when (level) {
+            FitnessLevel.BEGINNER -> rest + 15 // Principiantes necesitan más descanso
+            FitnessLevel.INTERMEDIATE -> rest
+            FitnessLevel.ADVANCED -> (rest - 10).coerceAtLeast(30)
+        }
+
+        return VolumeRecommendation(
+            sets = adjustedSets,
+            repsMin = repsMin,
+            repsMax = repsMax,
+            rest = adjustedRest
+        )
+    }
+
+    /**
+     * Asigna fase DUP según el día de la semana dentro de un split
+     * 
+     * Para splits de 3 días: S/H/E (Fuerza/Hipertrofia/Resistencia)
+     * Para splits de 4 días: S/H/S/E
+     * Para splits de 5-6 días: S/H/E repetido
+     * Cada 4 semanas: semana de deload
+     */
+    fun assignPhaseForDay(dayIndex: Int, totalDays: Int, weekNumber: Int = 1): TrainingPhase {
+        // Semana de deload cada 4 semanas
+        if (weekNumber > 0 && weekNumber % 4 == 0) {
+            return TrainingPhase.DELOAD
+        }
+
+        val phases = listOf(
+            TrainingPhase.STRENGTH,
+            TrainingPhase.HYPERTROPHY,
+            TrainingPhase.ENDURANCE
+        )
+        
+        return phases[dayIndex % phases.size]
+    }
 }
-
-
 
 /**
  * Análisis de balance push/pull

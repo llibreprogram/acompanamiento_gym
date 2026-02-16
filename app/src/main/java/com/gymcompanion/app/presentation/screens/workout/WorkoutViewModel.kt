@@ -37,6 +37,10 @@ class WorkoutViewModel @Inject constructor(
     private val _routine = MutableStateFlow<RoutineWithExercises?>(null)
     val routine: StateFlow<RoutineWithExercises?> = _routine.asStateFlow()
     
+    // Navigation state to prevent rapid clicks
+    private val _isNavigating = MutableStateFlow(false)
+    val isNavigating: StateFlow<Boolean> = _isNavigating.asStateFlow()
+    
     // Sets registrados en la sesión
     val sessionSets: StateFlow<List<ExerciseSetEntity>> = _currentSessionId
         .filterNotNull()
@@ -175,15 +179,19 @@ class WorkoutViewModel @Inject constructor(
                     )
                     workoutSessionRepository.insertExerciseSet(exerciseSet)
                     
-                    // Feedback háptico y de voz
-                    haptics.vibrateSuccess()
-                    voiceCoach.announceSetComplete()
+                    // Feedback háptico y de voz en background para no bloquear UI
+                    launch {
+                        haptics.vibrateSuccess()
+                        voiceCoach.announceSetComplete()
+                    }
                     
                     // Analizar RPE y generar feedback
                     rpe?.let {
-                        val feedback = rpeAnalyzer.analyzeSet(it)
-                        if (feedback.adjustment != com.gymcompanion.app.domain.usecase.RPEAnalyzer.Adjustment.KEEP_SAME) {
-                            _rpeFeedback.emit(feedback.message)
+                        launch {
+                            val feedback = rpeAnalyzer.analyzeSet(it)
+                            if (feedback.adjustment != com.gymcompanion.app.domain.usecase.RPEAnalyzer.Adjustment.KEEP_SAME) {
+                                _rpeFeedback.emit(feedback.message)
+                            }
                         }
                     }
                     
@@ -193,7 +201,9 @@ class WorkoutViewModel @Inject constructor(
                     exercise?.routineExercise?.restTimeSeconds?.let { restSeconds ->
                         if (restSeconds > 0) {
                             startRestTimer(restSeconds)
-                            voiceCoach.announceRestTimer(restSeconds)
+                            launch {
+                                voiceCoach.announceRestTimer(restSeconds)
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -233,18 +243,36 @@ class WorkoutViewModel @Inject constructor(
      * Avanza al siguiente ejercicio
      */
     fun nextExercise() {
+        if (_isNavigating.value) return // Prevent rapid clicks
+        
         val routine = _routine.value ?: return
         if (_currentExerciseIndex.value < routine.routineExercises.size - 1) {
+            _isNavigating.value = true
             _currentExerciseIndex.value++
+            
+            // Reset navigation lock after a short delay
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(300) // 300ms debounce
+                _isNavigating.value = false
+            }
         }
     }
     
     /**
      * Retrocede al ejercicio anterior
      */
-    fun previousExercise() {
+    fun prevExercise() {
+        if (_isNavigating.value) return // Prevent rapid clicks
+        
         if (_currentExerciseIndex.value > 0) {
+            _isNavigating.value = true
             _currentExerciseIndex.value--
+            
+            // Reset navigation lock after a short delay
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(300) // 300ms debounce
+                _isNavigating.value = false
+            }
         }
     }
     
@@ -369,7 +397,7 @@ class WorkoutViewModel @Inject constructor(
             if (_restTimerSeconds.value == 0) {
                 _isResting.value = false
                 // Vibración al completar descanso
-                haptics.vibrateMedium()
+                haptics.vibrateTimerFinished()
                 voiceCoach.announceRestComplete()
             }
         }

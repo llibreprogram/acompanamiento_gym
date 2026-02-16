@@ -60,6 +60,4 @@ abstract class RepositoryModule {
     abstract fun bindUserPreferencesRepository(
         userPreferencesRepositoryImpl: UserPreferencesRepositoryImpl
     ): UserPreferencesRepository
-    
-
 }

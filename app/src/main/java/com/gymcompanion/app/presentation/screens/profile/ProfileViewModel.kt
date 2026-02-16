@@ -127,7 +127,6 @@ class ProfileViewModel @Inject constructor(
         weight: Double,
         height: Double,
         experienceLevel: String,
-        activityLevel: String,
         bodyFatPercentage: Double?,
         chestMeasurement: Double?,
         waistMeasurement: Double?,
@@ -150,7 +149,6 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         gender = gender,
                         dateOfBirth = dateOfBirth,
-                        activityLevel = activityLevel,
                         updatedAt = System.currentTimeMillis()
                     )
                     userRepository.updateUser(updatedUser)
@@ -161,8 +159,7 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         email = null,
                         dateOfBirth = dateOfBirth,
-                        gender = gender,
-                        activityLevel = activityLevel
+                        gender = gender
                     )
                     userId = userRepository.insertUser(newUser)
                 }
@@ -249,7 +246,7 @@ class ProfileViewModel @Inject constructor(
     /**
      * Actualiza todos los datos personales del usuario a la vez
      */
-    fun updateUserData(name: String, gender: String, dateOfBirth: Long, activityLevel: String) {
+    fun updateUserData(name: String, gender: String, dateOfBirth: Long) {
         viewModelScope.launch {
             try {
                 val user = currentUser.value
@@ -259,7 +256,6 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         gender = gender,
                         dateOfBirth = dateOfBirth,
-                        activityLevel = activityLevel,
                         updatedAt = System.currentTimeMillis()
                     )
                     userRepository.updateUser(updatedUser)
@@ -269,8 +265,7 @@ class ProfileViewModel @Inject constructor(
                         name = name,
                         email = null,
                         dateOfBirth = dateOfBirth,
-                        gender = gender,
-                        activityLevel = activityLevel
+                        gender = gender
                     )
                     userRepository.insertUser(newUser)
                 }

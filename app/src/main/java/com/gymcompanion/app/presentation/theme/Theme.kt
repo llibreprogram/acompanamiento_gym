@@ -1,90 +1,105 @@
 package com.gymcompanion.app.presentation.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = GymPrimaryLight,
-    secondary = GymSecondary,
-    tertiary = GymAccentLight,
-    background = androidx.compose.ui.graphics.Color(0xFF0F172A), // Slate-900
-    surface = androidx.compose.ui.graphics.Color(0xFF1E293B), // Slate-800
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF334155), // Slate-700
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    onTertiary = androidx.compose.ui.graphics.Color.Black,
-    onBackground = androidx.compose.ui.graphics.Color(0xFFF1F5F9), // Slate-100
-    onSurface = androidx.compose.ui.graphics.Color(0xFFF8FAFC), // Slate-50
-    error = GymError,
-    onError = androidx.compose.ui.graphics.Color.White
+// ══════════════════════════════════════════════════════════════════
+// 🌙 PREMIUM DARK THEME — Always dark for gym context
+// ══════════════════════════════════════════════════════════════════
+
+private val GymDarkColorScheme = darkColorScheme(
+    // Primary — Neon Blue
+    primary = NeonBlue,
+    onPrimary = Color(0xFF003344),
+    primaryContainer = Color(0xFF004D66),
+    onPrimaryContainer = NeonBlueLight,
+
+    // Secondary — Neon Purple
+    secondary = NeonPurple,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF2D1B69),
+    onSecondaryContainer = NeonPurpleLight,
+
+    // Tertiary — Neon Green
+    tertiary = NeonGreen,
+    onTertiary = Color(0xFF003300),
+    tertiaryContainer = Color(0xFF004D00),
+    onTertiaryContainer = Color(0xFF66FF99),
+
+    // Backgrounds — Deep dark layers
+    background = DarkBackground,
+    onBackground = TextPrimary,
+    surface = DarkSurface,
+    onSurface = TextPrimary,
+    surfaceVariant = DarkSurfaceElevated,
+    onSurfaceVariant = TextSecondary,
+
+    // Errors
+    error = StatusError,
+    onError = Color.White,
+    errorContainer = Color(0xFF3D0D0D),
+    onErrorContainer = Color(0xFFFFB4AB),
+
+    // Outline / borders
+    outline = DarkSurfaceBorder,
+    outlineVariant = Color(0xFF1E1E2E),
+
+    // Inverse (for snackbars etc.)
+    inverseSurface = Color(0xFFE2E2E9),
+    inverseOnSurface = Color(0xFF1A1A26),
+    inversePrimary = NeonBlueDark,
+
+    // Scrim
+    scrim = Color(0xCC000000)
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = GymPrimary,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = GymPrimaryLight,
-    onPrimaryContainer = GymPrimaryDark,
-    secondary = GymSecondary,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFEDE9FE), // Violet-100
-    onSecondaryContainer = GymPrimaryDark,
-    tertiary = GymAccent,
-    onTertiary = androidx.compose.ui.graphics.Color.White,
-    tertiaryContainer = GymAccentLight,
-    onTertiaryContainer = GymPrimaryDark,
-    background = GymBackground,
-    onBackground = GymTextPrimary,
-    surface = GymSurface,
-    onSurface = GymTextPrimary,
-    surfaceVariant = GymSurfaceVariant,
-    onSurfaceVariant = GymTextSecondary,
-    error = GymError,
-    onError = androidx.compose.ui.graphics.Color.White,
-    errorContainer = androidx.compose.ui.graphics.Color(0xFFFEE2E2), // Red-100
-    onErrorContainer = androidx.compose.ui.graphics.Color(0xFF991B1B), // Red-800
-    outline = GymTextTertiary,
-    outlineVariant = androidx.compose.ui.graphics.Color(0xFFE2E8F0) // Slate-200
+// Modern rounded shapes for premium feel
+val GymShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp)
 )
 
 @Composable
 fun GymCompanionTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true, // Always dark for gym context
+    dynamicColor: Boolean = false, // Disabled — we use our custom neon palette
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val colorScheme = GymDarkColorScheme
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            // Transparent status bar for edge-to-edge
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+            
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = false
+            insetsController.isAppearanceLightNavigationBars = false
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = GymTypography,
+        shapes = GymShapes,
         content = content
     )
 }

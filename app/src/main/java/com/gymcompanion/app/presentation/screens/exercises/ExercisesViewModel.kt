@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gymcompanion.app.data.local.entity.ExerciseEntity
 import com.gymcompanion.app.domain.repository.ExerciseRepository
-
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -18,6 +17,7 @@ import javax.inject.Inject
 class ExercisesViewModel @Inject constructor(
     private val exerciseRepository: ExerciseRepository
 ) : ViewModel() {
+    
     // Query de búsqueda
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()

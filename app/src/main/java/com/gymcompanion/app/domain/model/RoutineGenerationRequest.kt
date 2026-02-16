@@ -19,8 +19,7 @@ data class RoutineGenerationRequest(
     val height: Float? = null, // Altura en cm
     val experienceLevel: String? = null, // "beginner", "intermediate", "advanced"
     val preferences: String? = null, // Preferencias de entrenamiento, tipo de rutina
-    val restrictions: String? = null, // Restricciones médicas, lesiones, etc.
-    val specificDays: List<String>? = null // Días específicos seleccionados por el usuario
+    val restrictions: String? = null // Restricciones médicas, lesiones, etc.
 )
 
 /**

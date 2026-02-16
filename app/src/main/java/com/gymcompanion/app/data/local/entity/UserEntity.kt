@@ -22,8 +22,7 @@ data class UserEntity(
     val experienceLevel: String? = null, // "beginner", "intermediate", "advanced"
     val goal: String? = null, // "muscle_gain", "fat_loss", "maintenance", etc.
     val restrictions: String? = null, // Lesiones, condiciones médicas, etc.
-    val preferences: String? = null, // Preferencias de entrenamiento, tipo de rutina, etc.
-    val activityLevel: String? = null // "sedentary", "light", "moderate", "active", "very_active"
+    val preferences: String? = null // Preferencias de entrenamiento, tipo de rutina, etc.
 ) {
     /**
      * Calcula la edad actual del usuario basándose en la fecha de nacimiento

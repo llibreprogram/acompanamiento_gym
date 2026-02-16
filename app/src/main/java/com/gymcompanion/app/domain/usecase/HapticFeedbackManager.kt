@@ -22,26 +22,61 @@ class HapticFeedbackManager @Inject constructor(
     }
 
     /**
-     * Vibración suave para acciones normales (set logged)
+     * Standard UI click feedback (system effect if available)
      */
-    fun vibrateLight() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+    fun vibrateClick() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            vibrator?.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
         } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(50)
+            vibrateLight()
         }
     }
 
     /**
-     * Vibración media para eventos importantes (timer completion)
+     * Heavy interaction feedback (system effect if available)
+     */
+    fun vibrateHeavyClick() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            vibrator?.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
+        } else {
+            vibrateMedium()
+        }
+    }
+
+    /**
+     * Timer finish feedback (longer pulse sequence)
+     */
+    fun vibrateTimerFinished() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val pattern = longArrayOf(0, 500, 200, 500, 200, 500)
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(longArrayOf(0, 500, 200, 500, 200, 500), -1)
+        }
+    }
+
+    /**
+     * Vibración suave para acciones normales (set logged)
+     */
+    fun vibrateLight() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(20)
+        }
+    }
+
+    /**
+     * Vibración media para eventos importantes
      */
     fun vibrateMedium() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator?.vibrate(VibrationEffect.createOneShot(50, 150))
         } else {
             @Suppress("DEPRECATION")
-            vibrator?.vibrate(100)
+            vibrator?.vibrate(50)
         }
     }
 
@@ -65,11 +100,12 @@ class HapticFeedbackManager @Inject constructor(
      */
     fun vibrateSuccess() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val pattern = longArrayOf(0, 50, 50, 50)
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            val pattern = longArrayOf(0, 50, 50, 100)
+            val amplitudes = intArrayOf(0, 100, 0, 255)
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, -1))
         } else {
             @Suppress("DEPRECATION")
-            val pattern = longArrayOf(0, 50, 50, 50)
+            val pattern = longArrayOf(0, 50, 50, 100)
             vibrator?.vibrate(pattern, -1)
         }
     }
@@ -79,11 +115,11 @@ class HapticFeedbackManager @Inject constructor(
      */
     fun vibrateError() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val pattern = longArrayOf(0, 30, 30, 30, 30, 30)
+            val pattern = longArrayOf(0, 50, 50, 50, 50, 50)
             vibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
         } else {
             @Suppress("DEPRECATION")
-            val pattern = longArrayOf(0, 30, 30, 30, 30, 30)
+            val pattern = longArrayOf(0, 50, 50, 50, 50, 50)
             vibrator?.vibrate(pattern, -1)
         }
     }

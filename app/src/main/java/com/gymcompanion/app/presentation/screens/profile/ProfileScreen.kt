@@ -12,16 +12,17 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.gymcompanion.app.presentation.components.GoalsSection
 import com.gymcompanion.app.presentation.components.ProfileHeader
+import com.gymcompanion.app.presentation.theme.*
 
 /**
- * Pantalla de perfil del usuario
- * Muestra y permite editar datos corporales y preferencias
+ * 👤 PROFILE SCREEN — Premium Dark Neon Design
  */
 @Composable
 fun ProfileScreen(
@@ -32,12 +33,12 @@ fun ProfileScreen(
     val latestMetrics by viewModel.latestMetrics.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val userPreferences by viewModel.userPreferences.collectAsState()
-    
+
     // Estados locales para unidades (se actualizan con LaunchedEffect)
     var weightUnit by remember { mutableStateOf("kg") }
     var heightUnit by remember { mutableStateOf("cm") }
     var distanceUnit by remember { mutableStateOf("km") }
-    
+
     // Actualizar estados locales cuando cambian las preferencias
     LaunchedEffect(userPreferences) {
         userPreferences?.let { prefs ->
@@ -47,13 +48,24 @@ fun ProfileScreen(
             distanceUnit = prefs.distanceUnit
         } ?: android.util.Log.d("ProfileScreen", "userPreferences es null")
     }
-    
+
     var showBodyMetricsDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
+        containerColor = DarkBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Mi Perfil") }
+                title = {
+                    Text(
+                        "Mi Perfil",
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = DarkSurface.copy(alpha = 0.95f)
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -151,14 +163,6 @@ fun ProfileScreen(
                         else -> "No especificado"
                     })
                     MetricRow("Edad", "${currentUser?.calculateAge() ?: "--"} años")
-                    MetricRow("Actividad", when(currentUser?.activityLevel) {
-                        "sedentary" -> "Sedentario"
-                        "light" -> "Ligero"
-                        "moderate" -> "Moderado"
-                        "active" -> "Activo"
-                        "very_active" -> "Muy Activo"
-                        else -> "No especificado"
-                    })
                     
                     // Métricas corporales
                     latestMetrics?.let { metrics ->
@@ -425,10 +429,10 @@ fun ProfileScreen(
             currentMetrics = metrics,
             currentUser = user,
             onDismiss = { showBodyMetricsDialog = false },
-            onSaveComplete = { name, gender, dateOfBirth, weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, activityLevel, notes ->
+            onSaveComplete = { name, gender, dateOfBirth, weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes ->
                 viewModel.saveCompleteProfile(
                     name, gender, dateOfBirth,
-                    weight, height, level, activityLevel, bodyFat, chest, waist, hips, thigh, arm, calf, notes
+                    weight, height, level, bodyFat, chest, waist, hips, thigh, arm, calf, notes
                 )
                 showBodyMetricsDialog = false
             }

@@ -77,6 +77,6 @@ interface RoutineDao {
     fun getActiveRoutinesWithExercises(userId: Long): Flow<List<com.gymcompanion.app.data.local.entity.RoutineWithExercises>>
     
     @Transaction
-    @Query("SELECT * FROM routines WHERE userId = :userId AND isActive = 1 AND daysOfWeek LIKE '%' || :dayOfWeek || '%' ORDER BY createdAt DESC")
+    @Query("SELECT * FROM routines WHERE userId = :userId AND daysOfWeek LIKE '%' || :dayOfWeek || '%' ORDER BY createdAt DESC")
     fun getRoutinesForDayWithExercises(userId: Long, dayOfWeek: String): Flow<List<com.gymcompanion.app.data.local.entity.RoutineWithExercises>>
 }

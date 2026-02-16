@@ -38,9 +38,6 @@ interface WorkoutDao {
     
     @Query("DELETE FROM workout_sessions WHERE id = :sessionId")
     suspend fun deleteWorkoutSessionById(sessionId: Long)
-
-    @Query("SELECT * FROM workout_sessions WHERE id IN (SELECT DISTINCT workoutSessionId FROM exercise_sets WHERE exerciseId = :exerciseId) ORDER BY startTime DESC LIMIT :limit")
-    fun getSessionsByExercise(exerciseId: Long, limit: Int): Flow<List<WorkoutSessionEntity>>
     
     // Exercise Set operations
     @Insert(onConflict = OnConflictStrategy.REPLACE)

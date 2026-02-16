@@ -39,7 +39,7 @@ data class ExerciseSetEntity(
     // Información de la serie
     val setNumber: Int, // 1, 2, 3...
     val repsCompleted: Int,
-    val weightUsed: Double? = null, // en kg, null para peso corporal
+    val weightUsed: Double? = null, // en lbs, null para peso corporal
     
     // Tiempo
     val performedAt: Long = System.currentTimeMillis(),

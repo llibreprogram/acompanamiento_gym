@@ -5,14 +5,16 @@ import javax.inject.Inject
 /**
  * Calculadora de discos para barra olímpica
  * Calcula qué discos poner en cada lado de la barra para alcanzar el peso objetivo
+ * 
+ * Todas las unidades están en libras (lbs)
  */
 class PlateCalculator @Inject constructor() {
     
     companion object {
-        const val STANDARD_BAR_WEIGHT = 20.0 // kg
+        const val STANDARD_BAR_WEIGHT = 45.0 // lbs (barra olímpica estándar)
         
-        // Discos disponibles en orden descendente (en kg)
-        val AVAILABLE_PLATES = listOf(25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 2.0, 1.25, 1.0, 0.5)
+        // Discos disponibles en orden descendente (en lbs)
+        val AVAILABLE_PLATES = listOf(45.0, 35.0, 25.0, 10.0, 5.0, 2.5)
     }
     
     /**
@@ -56,9 +58,9 @@ class PlateCalculator @Inject constructor() {
     
     /**
      * Calcula los discos necesarios para alcanzar el peso objetivo
-     * @param targetWeight Peso total objetivo
+     * @param targetWeight Peso total objetivo en lbs
      * @param equipmentType Tipo de equipo usado
-     * @param barWeight Peso de la barra (por defecto 20kg)
+     * @param barWeight Peso de la barra en lbs (por defecto 45 lbs)
      * @return PlateLoadout con la configuración de discos
      */
     fun calculatePlates(
@@ -109,7 +111,7 @@ class PlateCalculator @Inject constructor() {
         
         // Algoritmo greedy: usar el disco más grande posible en cada paso
         for (plate in AVAILABLE_PLATES) {
-            while (remainingWeight >= plate - 0.01) { // Tolerancia de 0.01kg para errores de redondeo
+            while (remainingWeight >= plate - 0.01) { // Tolerancia para errores de redondeo
                 platesPerSide.add(plate)
                 remainingWeight -= plate
             }
@@ -130,7 +132,7 @@ class PlateCalculator @Inject constructor() {
     
     /**
      * Formatea la lista de discos para mostrar
-     * Ejemplo: [20, 20, 5, 2.5] -> "2×20kg + 5kg + 2.5kg"
+     * Ejemplo: [45, 25, 10] -> "45lbs + 25lbs + 10lbs"
      */
     fun formatPlates(plates: List<Double>): String {
         if (plates.isEmpty()) return "Sin discos"
@@ -138,9 +140,9 @@ class PlateCalculator @Inject constructor() {
         val grouped = plates.groupBy { it }
             .map { (weight, list) ->
                 if (list.size > 1) {
-                    "${list.size}×${weight}kg"
+                    "${list.size}×${weight}lbs"
                 } else {
-                    "${weight}kg"
+                    "${weight}lbs"
                 }
             }
         

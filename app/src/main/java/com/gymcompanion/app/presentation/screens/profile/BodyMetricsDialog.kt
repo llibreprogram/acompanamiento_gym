@@ -38,7 +38,6 @@ fun BodyMetricsDialog(
         thighMeasurement: Double?,
         armMeasurement: Double?,
         calfMeasurement: Double?,
-        activityLevel: String,
         notes: String?
     ) -> Unit
 ) {
@@ -53,7 +52,6 @@ fun BodyMetricsDialog(
     var height by remember { mutableStateOf(currentMetrics?.height?.toString() ?: "") }
     var bodyFat by remember { mutableStateOf(currentMetrics?.bodyFatPercentage?.toString() ?: "") }
     var experienceLevel by remember { mutableStateOf(currentMetrics?.experienceLevel ?: "beginner") }
-    var activityLevel by remember { mutableStateOf(currentUser?.activityLevel ?: "moderate") }
     var showAdvancedMeasures by remember { mutableStateOf(false) }
     
     // Medidas avanzadas
@@ -261,52 +259,6 @@ fun BodyMetricsDialog(
                         onClick = { experienceLevel = "advanced" }
                     )
                 }
-
-                // Nivel de Actividad
-                Text(
-                    text = "Nivel de Actividad",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-                
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ExperienceLevelOption(
-                        level = "sedentary",
-                        label = "Sedentario",
-                        description = "Poco o nada de ejercicio",
-                        selected = activityLevel == "sedentary",
-                        onClick = { activityLevel = "sedentary" }
-                    )
-                    ExperienceLevelOption(
-                        level = "light",
-                        label = "Ligero",
-                        description = "Ejercicio ligero 1-3 días/semana",
-                        selected = activityLevel == "light",
-                        onClick = { activityLevel = "light" }
-                    )
-                    ExperienceLevelOption(
-                        level = "moderate",
-                        label = "Moderado",
-                        description = "Ejercicio moderado 3-5 días/semana",
-                        selected = activityLevel == "moderate",
-                        onClick = { activityLevel = "moderate" }
-                    )
-                    ExperienceLevelOption(
-                        level = "active",
-                        label = "Activo",
-                        description = "Ejercicio fuerte 6-7 días/semana",
-                        selected = activityLevel == "active",
-                        onClick = { activityLevel = "active" }
-                    )
-                    ExperienceLevelOption(
-                        level = "very_active",
-                        label = "Muy Activo",
-                        description = "Ejercicio muy fuerte o trabajo físico",
-                        selected = activityLevel == "very_active",
-                        onClick = { activityLevel = "very_active" }
-                    )
-                }
                 
                 Divider()
                 
@@ -429,7 +381,6 @@ fun BodyMetricsDialog(
                             thigh.toDoubleOrNull(),
                             arm.toDoubleOrNull(),
                             calf.toDoubleOrNull(),
-                            activityLevel,
                             notes.takeIf { it.isNotBlank() }
                         )
                     }

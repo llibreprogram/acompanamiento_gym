@@ -212,7 +212,7 @@ class HomeViewModel @Inject constructor(
         return if (volume >= 1000) {
             String.format("%.1ft", volume / 1000)
         } else {
-            String.format("%.0fkg", volume)
+            String.format("%.0flbs", volume)
         }
     }
     
