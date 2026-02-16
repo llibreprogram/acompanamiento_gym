@@ -29,3 +29,7 @@ local.properties
 # Large files
 *.zip
 *.core
+
+# SDK related
+sdk/
+*.sqlite
