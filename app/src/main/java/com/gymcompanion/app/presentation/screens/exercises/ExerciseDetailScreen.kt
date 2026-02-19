@@ -16,16 +16,22 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.gymcompanion.app.presentation.components.GlassmorphicCard
 import com.gymcompanion.app.presentation.components.ModernBadge
 import com.gymcompanion.app.presentation.theme.*
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+
 /**
  * ℹ️ EXERCISE DETAIL SCREEN — Premium Dark Neon Design
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExerciseDetailScreen(
     exerciseId: Long,
@@ -85,45 +91,67 @@ fun ExerciseDetailScreen(
 
                 // Imágenes
                 item {
-                    if (!selectedExercise.illustrationPath.isNullOrBlank()) {
-                        if (!selectedExercise.illustrationPath2.isNullOrBlank()) {
-                            // Dos imágenes lado a lado
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
+                    val images = remember(selectedExercise) {
+                        listOfNotNull(selectedExercise.illustrationPath, selectedExercise.illustrationPath2)
+                            .filter { it.isNotBlank() }
+                    }
+                    
+                    if (images.isNotEmpty()) {
+                        val pagerState = rememberPagerState(pageCount = { images.size })
+                        
+                        Box(contentAlignment = androidx.compose.ui.Alignment.BottomCenter) {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(DarkSurface),
+                                pageSpacing = 16.dp
+                            ) { page ->
                                 AsyncImage(
-                                    model = selectedExercise.illustrationPath,
-                                    contentDescription = "Inicio",
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(200.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(DarkSurface),
-                                    contentScale = ContentScale.Crop
-                                )
-                                AsyncImage(
-                                    model = selectedExercise.illustrationPath2,
-                                    contentDescription = "Fin",
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(200.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(DarkSurface),
+                                    model = images[page],
+                                    contentDescription = selectedExercise.name,
+                                    modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
                             }
-                        } else {
-                            // Una sola imagen
-                            AsyncImage(
-                                model = selectedExercise.illustrationPath,
-                                contentDescription = selectedExercise.name,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(240.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(DarkSurface),
-                                contentScale = ContentScale.Crop
+                            
+                            // Indicator
+                            if (images.size > 1) {
+                                Row(
+                                    Modifier
+                                        .padding(bottom = 12.dp)
+                                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    repeat(images.size) { iteration ->
+                                        val color = if (pagerState.currentPage == iteration) NeonBlue else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(color)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                         Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(DarkSurface),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            Text(
+                                text = selectedExercise.name.take(1).uppercase(),
+                                style = MaterialTheme.typography.displayMedium,
+                                color = NeonBlue,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }

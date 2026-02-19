@@ -35,6 +35,9 @@ import com.gymcompanion.app.presentation.components.*
 import com.gymcompanion.app.presentation.theme.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 /**
  * 🏋️ FOCUS MODE COMPONENTS — Premium Dark Neon Design
@@ -590,7 +593,7 @@ fun RestTimerOverlay(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ExerciseInfoBottomSheet(
     exercise: ExerciseEntity,
@@ -617,18 +620,51 @@ fun ExerciseInfoBottomSheet(
                 )
             }
             
-            if (!exercise.illustrationPath.isNullOrBlank()) {
-                item {
-                    AsyncImage(
-                        model = exercise.illustrationPath,
-                        contentDescription = exercise.name,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(DarkSurface),
-                        contentScale = ContentScale.Crop
-                    )
+            item {
+                val images = listOfNotNull(exercise.illustrationPath, exercise.illustrationPath2).filter { it.isNotBlank() }
+                
+                if (images.isNotEmpty()) {
+                    val pagerState = rememberPagerState(pageCount = { images.size })
+                    
+                    Box(contentAlignment = Alignment.BottomCenter) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(250.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(DarkSurface),
+                            pageSpacing = 16.dp
+                        ) { page ->
+                            AsyncImage(
+                                model = images[page],
+                                contentDescription = exercise.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        
+                        // Indicators
+                        if (images.size > 1) {
+                            Row(
+                                Modifier
+                                    .padding(bottom = 12.dp)
+                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                repeat(images.size) { iteration ->
+                                    val color = if (pagerState.currentPage == iteration) NeonBlue else Color.White.copy(alpha = 0.5f)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

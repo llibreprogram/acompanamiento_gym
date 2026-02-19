@@ -114,6 +114,14 @@ class WorkoutViewModel @Inject constructor(
      * Inicia una nueva sesión de entrenamiento
      */
     fun startWorkoutSession(routineId: Long) {
+        // ⚡ FIX: Prevent reset if session is already active for this routine
+        if (_currentSessionId.value != null && 
+            _routine.value?.routine?.id == routineId && 
+            _uiState.value !is WorkoutUiState.Completed && 
+            _uiState.value !is WorkoutUiState.Cancelled) {
+            return
+        }
+
         viewModelScope.launch {
             try {
                 // Cargar la rutina

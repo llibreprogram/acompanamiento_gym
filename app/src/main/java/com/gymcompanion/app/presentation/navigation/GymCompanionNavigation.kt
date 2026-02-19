@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -43,6 +44,8 @@ import com.gymcompanion.app.presentation.screens.exercises.ExercisesScreen
 import com.gymcompanion.app.presentation.screens.progress.ProgressScreen
 import com.gymcompanion.app.presentation.screens.profile.ProfileScreen
 import com.gymcompanion.app.presentation.screens.routines.RoutinesScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.gymcompanion.app.presentation.screens.workout.WorkoutViewModel
 import com.gymcompanion.app.presentation.screens.workout.WorkoutScreen
 
 /**
@@ -134,7 +137,10 @@ fun GymCompanionNavigation() {
                 val routineId = backStackEntry.arguments?.getLong("routineId") ?: 0L
                 com.gymcompanion.app.presentation.screens.routines.RoutineDetailScreen(
                     routineId = routineId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onExerciseClick = { exerciseId ->
+                        navController.navigate(Screen.ExerciseDetail.createRoute(exerciseId))
+                    }
                 )
             }
             composable(
@@ -177,6 +183,13 @@ fun GymCompanionNavigation() {
                 popExitTransition = { exitTrans }
             ) { backStackEntry ->
                 val routineId = backStackEntry.arguments?.getLong("routineId") ?: 0L
+                
+                // ⚡ FIX: Scope ViewModel to the Navigation Graph ID so it survives navigation changes
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(navController.graph.id)
+                }
+                val workoutViewModel = hiltViewModel<WorkoutViewModel>(parentEntry)
+
                 WorkoutScreen(
                     routineId = routineId,
                     onWorkoutComplete = {
@@ -184,7 +197,8 @@ fun GymCompanionNavigation() {
                     },
                     onWorkoutCancel = {
                         navController.popBackStack()
-                    }
+                    },
+                    viewModel = workoutViewModel
                 )
             }
             composable(

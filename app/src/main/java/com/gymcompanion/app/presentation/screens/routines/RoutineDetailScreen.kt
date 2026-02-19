@@ -2,6 +2,7 @@
 
 package com.gymcompanion.app.presentation.screens.routines
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +34,7 @@ import com.gymcompanion.app.data.local.entity.RoutineExerciseWithExercise
 fun RoutineDetailScreen(
     routineId: Long,
     onNavigateBack: () -> Unit,
+    onExerciseClick: (Long) -> Unit,
     viewModel: RoutinesViewModel = hiltViewModel()
 ) {
     val allRoutines by viewModel.allRoutines.collectAsState()
@@ -136,7 +138,8 @@ fun RoutineDetailScreen(
                         onSwapClick = {
                             viewModel.loadAlternativesForExercise(routineExercise.exercise)
                             showSwapDialog = routineExercise
-                        }
+                        },
+                        onClick = { onExerciseClick(routineExercise.exercise.id) }
                     )
                 }
                 
@@ -249,10 +252,13 @@ fun RoutineDetailScreen(
 fun ExerciseItemCard(
     routineExercise: com.gymcompanion.app.data.local.entity.RoutineExerciseWithExercise,
     position: Int,
-    onSwapClick: () -> Unit
+    onSwapClick: () -> Unit,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
