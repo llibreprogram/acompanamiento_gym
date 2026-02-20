@@ -135,12 +135,14 @@ fun WorkoutScreen(
                             val exercise = exerciseWithDetails.exercise
                             val routineExercise = exerciseWithDetails.routineExercise
                             val sets = viewModel.getSetsForExercise(exercise.id)
+                            val historicPerformance by viewModel.lastExercisePerformance.collectAsState()
                             
                             FocusModeSession(
                                 exercise = exercise,
                                 routineExercise = routineExercise,
                                 currentSetNumber = sets.size + 1,
                                 completedSets = sets,
+                                historicPerformance = historicPerformance,
                                 plateCalculator = viewModel.plateCalculator,
                                 onLogSet = { weight, reps, rir, rpe ->
                                     viewModel.logSet(exercise.id, sets.size + 1, weight, reps, rir, rpe)

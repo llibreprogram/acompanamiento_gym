@@ -48,6 +48,7 @@ fun FocusModeSession(
     routineExercise: RoutineExerciseEntity,
     currentSetNumber: Int,
     completedSets: List<ExerciseSetEntity>,
+    historicPerformance: List<ExerciseSetEntity> = emptyList(),
     plateCalculator: PlateCalculator,
     onLogSet: (Double, Int, Int, Int) -> Unit,
     onDeleteSet: (ExerciseSetEntity) -> Unit,
@@ -63,15 +64,28 @@ fun FocusModeSession(
     var rpe by remember { mutableStateOf(8) }
     var showExerciseInfo by remember { mutableStateOf(false) }
 
-    // Pre-fill logic
-    LaunchedEffect(exercise.id) {
+    // Logic for auto-filling inputs based on current session or history
+    LaunchedEffect(exercise.id, currentSetNumber, historicPerformance) {
         if (completedSets.isNotEmpty()) {
+            // Priority 1: Carry over from last set in CURRENT session
             val lastSet = completedSets.last()
             weight = lastSet.weightUsed?.toString() ?: ""
             reps = lastSet.repsCompleted.toString()
+        } else {
+            // Priority 2: Use historical data for the FIRST set of current session
+            val historicSet = historicPerformance.find { it.setNumber == currentSetNumber } ?: historicPerformance.lastOrNull()
+            if (historicSet != null) {
+                weight = historicSet.weightUsed?.toString() ?: ""
+                reps = historicSet.repsCompleted.toString()
+            } else {
+                // Priority 3: Fallback defaults
+                weight = ""
+                reps = ""
+            }
         }
     }
 
+    // Auto-fill when a new set is completed (e.g. user just finished set 1, prep for set 2)
     LaunchedEffect(completedSets.lastOrNull()?.id) {
         completedSets.lastOrNull()?.let { lastSet ->
             weight = lastSet.weightUsed?.toString() ?: ""
@@ -234,12 +248,29 @@ fun FocusModeSession(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Set $currentSetNumber",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimary
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Set $currentSetNumber",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextPrimary
+                        )
+                        
+                        // Historical Performance Indicator
+                        val historicSet = historicPerformance.find { it.setNumber == currentSetNumber } ?: historicPerformance.lastOrNull()
+                        if (historicSet != null && completedSets.isEmpty()) {
+                            Text(
+                                text = "Última vez: ${historicSet.weightUsed ?: "—"} lbs × ${historicSet.repsCompleted}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = NeonBlue,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

@@ -41,6 +41,10 @@ class WorkoutViewModel @Inject constructor(
     private val _isNavigating = MutableStateFlow(false)
     val isNavigating: StateFlow<Boolean> = _isNavigating.asStateFlow()
     
+    // Historial del ejercicio actual
+    private val _lastExercisePerformance = MutableStateFlow<List<ExerciseSetEntity>>(emptyList())
+    val lastExercisePerformance: StateFlow<List<ExerciseSetEntity>> = _lastExercisePerformance.asStateFlow()
+    
     // Sets registrados en la sesión
     val sessionSets: StateFlow<List<ExerciseSetEntity>> = _currentSessionId
         .filterNotNull()
@@ -145,6 +149,9 @@ class WorkoutViewModel @Inject constructor(
                     
                     // Iniciar timer
                     startTimer()
+                    
+                    // Cargar historial del primer ejercicio
+                    loadHistoricalDataForCurrentExercise()
                     
                     // TODO: Fix notification service
                     // Iniciar servicio de notificación
@@ -257,6 +264,7 @@ class WorkoutViewModel @Inject constructor(
         if (_currentExerciseIndex.value < routine.routineExercises.size - 1) {
             _isNavigating.value = true
             _currentExerciseIndex.value++
+            loadHistoricalDataForCurrentExercise()
             
             // Reset navigation lock after a short delay
             viewModelScope.launch {
@@ -275,11 +283,43 @@ class WorkoutViewModel @Inject constructor(
         if (_currentExerciseIndex.value > 0) {
             _isNavigating.value = true
             _currentExerciseIndex.value--
+            loadHistoricalDataForCurrentExercise()
             
             // Reset navigation lock after a short delay
             viewModelScope.launch {
                 kotlinx.coroutines.delay(300) // 300ms debounce
                 _isNavigating.value = false
+            }
+        }
+    }
+    
+    /**
+     * Carga el historial de la última vez que se hizo el ejercicio actual
+     */
+    private fun loadHistoricalDataForCurrentExercise() {
+        val routineWithEx = _routine.value ?: return
+        val currentIndex = _currentExerciseIndex.value
+        val currentEx = routineWithEx.routineExercises.getOrNull(currentIndex) ?: return
+        
+        viewModelScope.launch {
+            try {
+                // Get history, limit 1 (the most recent session that is NOT the current one)
+                val history = workoutSessionRepository.getExerciseHistory(1L, currentEx.exercise.id, 2)
+                
+                // Find the first session in history that is not the current active session
+                val lastSession = history.firstOrNull { it.session.id != _currentSessionId.value }
+                
+                if (lastSession != null) {
+                    // Filter sets from that session that belong to this exercise
+                    val historicSets = lastSession.sets.filter { it.exerciseId == currentEx.exercise.id }
+                        .sortedBy { it.setNumber }
+                    _lastExercisePerformance.value = historicSets
+                } else {
+                    _lastExercisePerformance.value = emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "Error loading history: ${e.message}")
+                _lastExercisePerformance.value = emptyList()
             }
         }
     }
