@@ -89,6 +89,19 @@ class WorkoutViewModel @Inject constructor(
     // Tiempo de inicio
     private var sessionStartTime: Long = 0
     
+    // ⚡ FIX: Routine activa global (para evitar multiples sesiones)
+    val activeWorkoutRoutineId: StateFlow<Long?> = combine(_currentSessionId, _routine, _uiState) { sessionId, routineWithExercises, state ->
+        if (sessionId != null && state !is WorkoutUiState.Completed && state !is WorkoutUiState.Cancelled) {
+            routineWithExercises?.routine?.id
+        } else {
+            null
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
     // TODO: Fix NaN issue in notification updates
     /*
     init {

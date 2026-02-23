@@ -20,6 +20,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,10 +78,42 @@ fun GymCompanionNavigation() {
                 exitTransition = { exitTrans },
                 popEnterTransition = { enterTrans },
                 popExitTransition = { exitTrans }
-            ) {
+            ) { backStackEntry ->
+                // ⚡ FIX: Access global scoped WorkoutViewModel to check for active sessions
+                val parentEntry = remember(backStackEntry) {
+                    try { navController.getBackStackEntry(navController.graph.id) } 
+                    catch (e: Exception) { backStackEntry }
+                }
+                val workoutViewModel = hiltViewModel<WorkoutViewModel>(parentEntry)
+                val activeRoutineId by workoutViewModel.activeWorkoutRoutineId.collectAsState()
+                var showCancelDialog by remember { mutableStateOf<Long?>(null) }
+                
+                if (showCancelDialog != null) {
+                    AlertDialog(
+                        onDismissRequest = { showCancelDialog = null },
+                        title = { Text("Entrenamiento en curso", color = MaterialTheme.colorScheme.onSurface) },
+                        text = { Text("Ya tienes una rutina en progreso. ¿Deseas cancelarla y empezar esta nueva?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        confirmButton = {
+                            TextButton(onClick = { 
+                                workoutViewModel.cancelWorkout()
+                                navController.navigate(Screen.WorkoutSession.createRoute(showCancelDialog!!))
+                                showCancelDialog = null
+                            }) { Text("Sí, empezar nueva", color = MaterialTheme.colorScheme.error) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showCancelDialog = null }) { Text("Volver", color = MaterialTheme.colorScheme.primary) }
+                        },
+                        containerColor = com.gymcompanion.app.presentation.theme.DarkSurface
+                    )
+                }
+
                 HomeScreen(
                     onStartWorkout = { routineId ->
-                        navController.navigate(Screen.WorkoutSession.createRoute(routineId))
+                        if (activeRoutineId != null && activeRoutineId != routineId) {
+                            showCancelDialog = routineId
+                        } else {
+                            navController.navigate(Screen.WorkoutSession.createRoute(routineId))
+                        }
                     },
                     onNavigateToRoutines = {
                         navController.navigate(Screen.Routines.route)
@@ -97,10 +132,41 @@ fun GymCompanionNavigation() {
                 exitTransition = { exitTrans },
                 popEnterTransition = { enterTrans },
                 popExitTransition = { exitTrans }
-            ) {
+            ) { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    try { navController.getBackStackEntry(navController.graph.id) } 
+                    catch (e: Exception) { backStackEntry }
+                }
+                val workoutViewModel = hiltViewModel<WorkoutViewModel>(parentEntry)
+                val activeRoutineId by workoutViewModel.activeWorkoutRoutineId.collectAsState()
+                var showCancelDialog by remember { mutableStateOf<Long?>(null) }
+                
+                if (showCancelDialog != null) {
+                    AlertDialog(
+                        onDismissRequest = { showCancelDialog = null },
+                        title = { Text("Entrenamiento en curso", color = MaterialTheme.colorScheme.onSurface) },
+                        text = { Text("Ya tienes una rutina en progreso. ¿Deseas cancelarla y empezar esta nueva?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        confirmButton = {
+                            TextButton(onClick = { 
+                                workoutViewModel.cancelWorkout()
+                                navController.navigate(Screen.WorkoutSession.createRoute(showCancelDialog!!))
+                                showCancelDialog = null
+                            }) { Text("Sí, empezar nueva", color = MaterialTheme.colorScheme.error) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showCancelDialog = null }) { Text("Volver", color = MaterialTheme.colorScheme.primary) }
+                        },
+                        containerColor = com.gymcompanion.app.presentation.theme.DarkSurface
+                    )
+                }
+
                 RoutinesScreen(
                     onRoutineClick = { routineId ->
-                        navController.navigate(Screen.WorkoutSession.createRoute(routineId))
+                        if (activeRoutineId != null && activeRoutineId != routineId) {
+                            showCancelDialog = routineId
+                        } else {
+                            navController.navigate(Screen.WorkoutSession.createRoute(routineId))
+                        }
                     },
                     onCreateRoutine = {
                         navController.navigate(Screen.RoutineGenerator.route)
